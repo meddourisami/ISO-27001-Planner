@@ -28,6 +28,9 @@ public class DocumentVersion {
     private String fileName;
     private Long fileSize;
 
+    @Column(columnDefinition = "TEXT")
+    private String previewContent; // Indexed and searchable
+
     @ManyToOne
     @JoinColumn(name = "document_id")
     private Document document;
