@@ -32,11 +32,17 @@ public class NonConformity {
 
     private LocalDate dueDate;
 
-    @ElementCollection
-    private List<String> relatedControls;
+    @ManyToMany
+    @JoinTable(name = "nonconformity_controls",
+            joinColumns = @JoinColumn(name = "nc_id"),
+            inverseJoinColumns = @JoinColumn(name = "control_id"))
+    private List<Control> relatedControls;
 
-    @ElementCollection
-    private List<String> relatedRisks;
+    @ManyToMany
+    @JoinTable(name = "nonconformity_risks",
+            joinColumns = @JoinColumn(name = "nc_id"),
+            inverseJoinColumns = @JoinColumn(name = "risk_id"))
+    private List<Risk> relatedRisks;
 
     private String correctiveActions;
     private String evidence;

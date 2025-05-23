@@ -4,6 +4,7 @@ import com.iso27001planner.dto.DocumentDTO;
 import com.iso27001planner.dto.DocumentVersionDTO;
 import com.iso27001planner.entity.DocumentVersion;
 import com.iso27001planner.exception.BusinessException;
+import com.iso27001planner.mapper.DocumentVersionMapper;
 import com.iso27001planner.repository.DocumentVersionRepository;
 import com.iso27001planner.service.DocumentService;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final DocumentVersionRepository versionRepository;
+    private final DocumentVersionMapper mapper;
 
     @PostMapping
     @PreAuthorize("hasAuthority('ISMS_ADMIN')")
@@ -73,6 +75,6 @@ public class DocumentController {
     @GetMapping("/search")
     public ResponseEntity<List<DocumentVersionDTO>> search(@RequestParam String query) {
         List<DocumentVersion> results = versionRepository.searchByContent(query);
-        return ResponseEntity.ok(results.stream().map(this::toDTO).toList());
+        return ResponseEntity.ok(results.stream().map(mapper::toDTO).toList());
     }
 }

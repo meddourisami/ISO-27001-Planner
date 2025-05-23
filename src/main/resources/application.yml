@@ -29,3 +29,5 @@ server:
 jwt:
   secret: 97+QV3nciNx0YyAMlxv5J52geazGGcbEq76MihsqlkkI0oGdYlZ0gcjg5YAI1Kgm0Gxv1n2tEpHuHfkFAx12ZA==   # Move this to environment variable in production!
 
+storage:
+  path: uploads/templates

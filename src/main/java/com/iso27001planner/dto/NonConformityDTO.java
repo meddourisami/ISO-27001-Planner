@@ -20,8 +20,8 @@ public class NonConformityDTO {
     private String status;
     private String owner;
     private String dueDate;
-    private List<String> relatedControls;
-    private List<String> relatedRisks;
+    private List<String> relatedControls; // control UUIDs
+    private List<String> relatedRisks;    // risk UUIDs
     private String correctiveActions;
     private String evidence;
     private String verificationStatus;
