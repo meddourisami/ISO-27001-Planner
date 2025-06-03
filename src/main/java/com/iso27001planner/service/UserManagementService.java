@@ -1,27 +1,30 @@
 package com.iso27001planner.service;
 
-import com.iso27001planner.dto.ChangePasswordRequest;
-import com.iso27001planner.dto.EditUserRequest;
-import com.iso27001planner.dto.RoleUpdateRequest;
-import com.iso27001planner.dto.UserDTO;
+import com.iso27001planner.dto.*;
 import com.iso27001planner.entity.Role;
 import com.iso27001planner.entity.User;
 import com.iso27001planner.event.AuditEvent;
 import com.iso27001planner.exception.BusinessException;
 import com.iso27001planner.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserManagementService {
@@ -30,6 +33,8 @@ public class UserManagementService {
     private final RefreshTokenService refreshTokenService;
     private final ApplicationEventPublisher eventPublisher;
     private final PasswordEncoder passwordEncoder;
+    private final EntityManager entityManager;
+
 
     @Transactional
     public String updateUserRole(RoleUpdateRequest request) {
@@ -68,7 +73,7 @@ public class UserManagementService {
         return "User role updated to " + requestedRole;
     }
 
-    private User getAuthenticatedUser() {
+    public User getAuthenticatedUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException("Auth error", HttpStatus.UNAUTHORIZED));
@@ -119,6 +124,11 @@ public class UserManagementService {
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new BusinessException("Current password is incorrect", HttpStatus.BAD_REQUEST);
+        }
+
+        // 🔐 NEW: Prevent using the same password again
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new BusinessException("New password must be different from the current password", HttpStatus.BAD_REQUEST);
         }
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
@@ -216,6 +226,59 @@ public class UserManagementService {
         ));
 
         return users.map(this::mapToDto);
+    }
+
+    @Modifying
+    @Transactional
+    public void updateOwnProfile(String currentEmail, UpdateProfileRequest request) {
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
+
+        String existingEmail = Optional.ofNullable(user.getEmail()).orElse("");
+        String existingName = Optional.ofNullable(user.getFullName()).orElse("");
+        String newEmail = Optional.ofNullable(request.getEmail()).orElse("");
+        String newName = Optional.ofNullable(request.getFullName()).orElse("");
+
+        log.debug("Current email: {}", existingEmail);
+        log.debug("New email: {}", newEmail);
+        log.debug("Current name: {}", existingName);
+        log.debug("New name: {}", newName);
+
+        boolean emailChanged = !existingEmail.equals(newEmail);
+        boolean nameChanged = !existingName.equals(newName);
+
+        log.debug("Email changed? {}", emailChanged);
+        log.debug("Name changed? {}", nameChanged);
+
+        if (!emailChanged && !nameChanged) {
+            log.info("No changes detected. Skipping save.");
+            return;
+        }
+
+        if (emailChanged && userRepository.existsByEmail(newEmail)) {
+            throw new BusinessException("Email already in use", HttpStatus.CONFLICT);
+        }
+
+        if (emailChanged) {
+            user.setEmail(newEmail);
+        }
+
+        if (nameChanged) {
+            user.setFullName(newName);
+        }
+
+        userRepository.save(user);
+
+        log.info("User profile updated: {}", user.getId());
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "UPDATE_PROFILE",
+                currentEmail,
+                "User",
+                user.getId().toString(),
+                "User updated profile" + (emailChanged ? " (email changed)" : "") + (nameChanged ? " (name changed)" : "")
+        ));
     }
 
     public UserDTO mapToDto(User user) {

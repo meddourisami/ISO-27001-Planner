@@ -4,6 +4,7 @@ import com.iso27001planner.dto.*;
 import com.iso27001planner.entity.Role;
 import com.iso27001planner.entity.User;
 import com.iso27001planner.exception.BusinessException;
+import com.iso27001planner.mapper.UserMapper;
 import com.iso27001planner.repository.UserRepository;
 import com.iso27001planner.service.UserManagementService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ public class UserController {
     private final UserManagementService userManagementService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
 
     @PostMapping("/update-role")
     @PreAuthorize("hasAuthority('ISMS_ADMIN')")
@@ -113,5 +115,24 @@ public class UserController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDTO> getCurrentUser() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.UNAUTHORIZED));
+
+        return ResponseEntity.ok(UserMapper.toDTO(user));
+    }
+
+    @PutMapping("/update-profile")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<String> updateProfile(@RequestBody UpdateProfileRequest request) {
+        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        userManagementService.updateOwnProfile(currentEmail, request);
+        return ResponseEntity.ok("Profile updated successfully.");
     }
 }

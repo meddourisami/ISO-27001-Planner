@@ -24,6 +24,10 @@ public class DocumentTemplate {
     private String filePath;        // server/local disk path
     private String fileType;        // MIME type e.g. application/pdf
     private Long fileSize;          // in bytes
+
+    @Column(length = 64, unique = true)
+    private String fileHash;
+
     @Column(length = 10000)
     private String content;
 

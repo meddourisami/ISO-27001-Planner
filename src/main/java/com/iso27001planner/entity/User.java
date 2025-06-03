@@ -17,8 +17,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "full_name", updatable = true)
     private String fullName;
 
+    @Column(name = "email", unique = true, updatable = true) // ✅ must not be false
     private String email;
 
     private String password;

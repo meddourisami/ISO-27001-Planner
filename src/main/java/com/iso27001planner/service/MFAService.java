@@ -38,9 +38,6 @@ public class MFAService {
 
         Instant now = Instant.now();
 
-        System.out.println("Expected OTP: " + user.getMfaSecret());
-        System.out.println("Provided OTP: " + request.getCode());
-
         if (!user.isMfaEnabled()) {
             throw new BusinessException("MFA is not enabled for this account", HttpStatus.BAD_REQUEST);
         }
@@ -181,6 +178,58 @@ public class MFAService {
                 "MFA disabled by user"
         ));
         return "Email MFA disabled successfully.";
+    }
+
+    @Transactional
+    public void resendOtp(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
+
+        if (!user.isMfaEnabled()) {
+            throw new BusinessException("MFA is not enabled for this user", HttpStatus.BAD_REQUEST);
+        }
+
+        // Optional: prevent abuse (e.g. within 1 minute)
+        if (user.getMfaExpiryTime() != null && Instant.now().isBefore(user.getMfaExpiryTime().minusSeconds(240))) {
+            throw new BusinessException("Please wait before requesting another code", HttpStatus.TOO_MANY_REQUESTS);
+        }
+
+        String otp = MFAUtil.generateOtp();
+        Instant expiry = Instant.now().plus(Duration.ofMinutes(5));
+
+        user.setMfaSecret(otp);
+        user.setMfaExpiryTime(expiry);
+        userRepository.save(user);
+
+        emailSenderService.sendOtp(user.getEmail(), otp);
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this, "RESEND_MFA_OTP", user.getEmail(), "MFA", null, "Resent OTP code"
+        ));
+    }
+
+    @Transactional
+    public void verifyMfaSetupCode(String email, String code) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
+
+        Instant now = Instant.now();
+
+        if (user.getMfaSecret() == null || user.getMfaExpiryTime() == null || now.isAfter(user.getMfaExpiryTime())) {
+            throw new BusinessException("MFA code expired or not generated", HttpStatus.UNAUTHORIZED);
+        }
+
+        if (!user.getMfaSecret().equals(code)) {
+            throw new BusinessException("Invalid OTP code", HttpStatus.UNAUTHORIZED);
+        }
+
+        // OTP is correct — enable MFA
+        user.setMfaEnabled(true);
+        user.setMfaSecret(null);
+        user.setMfaExpiryTime(null);
+        user.setFailedOtpAttempts(0);
+        user.setOtpLockUntil(null);
+        userRepository.save(user);
     }
 }
 

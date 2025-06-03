@@ -53,7 +53,7 @@ public class DocumentController {
     }
 
     @GetMapping("/{id}/versions")
-    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'COMPANY_USER')")
+    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
     public ResponseEntity<List<DocumentVersionDTO>> getVersions(@PathVariable Long id) {
         return ResponseEntity.ok(documentService.getVersionHistory(id));
     }

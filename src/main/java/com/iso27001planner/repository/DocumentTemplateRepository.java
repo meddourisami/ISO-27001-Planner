@@ -11,4 +11,7 @@ public interface DocumentTemplateRepository extends JpaRepository<DocumentTempla
     List<DocumentTemplate> findByCompanyIsNull();
 
     @Query("SELECT d FROM DocumentTemplate d WHERE lower(d.content) LIKE lower(concat('%', :keyword, '%'))")
-    List<DocumentTemplate> searchByContent(@Param("keyword") String keyword);}
+    List<DocumentTemplate> searchByContent(@Param("keyword") String keyword);
+
+    boolean existsByFileHash(String fileHash);
+}
