@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -96,7 +97,7 @@ public class UserController {
     }
 
     @GetMapping("/list-members")
-    @PreAuthorize("hasAuthority('ISMS_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ISMS_USER', 'ISMS_ADMIN')")
     public ResponseEntity<PaginatedResponse<UserDTO>> listMembers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -134,5 +135,14 @@ public class UserController {
         String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         userManagementService.updateOwnProfile(currentEmail, request);
         return ResponseEntity.ok("Profile updated successfully.");
+    }
+
+    @GetMapping("/roles")
+    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN', 'ISMS_ADMIN','ISMS_USER')") // Optional: secure if needed
+    public ResponseEntity<List<String>> getRoles() {
+        List<String> roles = Arrays.stream(Role.values())
+                .map(Enum::name)
+                .toList();
+        return ResponseEntity.ok(roles);
     }
 }

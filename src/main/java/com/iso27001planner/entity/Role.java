@@ -5,5 +5,6 @@ public enum Role {
     ISMS_ADMIN,
     ISMS_USER,
     AUDITOR,
-    SECURITY_OFFICER
+    SECURITY_OFFICER,
+    RISK_MANAGER
 }
