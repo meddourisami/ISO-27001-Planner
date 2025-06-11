@@ -34,24 +34,30 @@ public class RiskService {
     private RiskScoringStrategy strategy;
 
     public RiskDTO createRisk(RiskDTO dto) {
-        Asset asset = assetRepository.findById(dto.getAssetId())
-                .orElseThrow(() -> new BusinessException("Asset not found", HttpStatus.NOT_FOUND));
+        Asset asset = null;
+        if (dto.getAssetId() != null && !dto.getAssetId().isBlank()) {
+            asset = assetRepository.findById(dto.getAssetId())
+                    .orElseThrow(() -> new BusinessException("Asset not found", HttpStatus.NOT_FOUND));
+        }
+
         User owner = userRepository.findByEmail(dto.getOwnerEmail())
                 .orElseThrow(() -> new BusinessException("Owner not found", HttpStatus.NOT_FOUND));
+
         Company company = companyRepository.findById(dto.getCompanyId())
                 .orElseThrow(() -> new BusinessException("Company not found", HttpStatus.NOT_FOUND));
 
         Risk risk = riskMapper.toEntity(dto, asset, owner, company);
         String severity = calculateSeverity(dto.getLikelihood(), dto.getImpact());
         risk.setSeverity(severity);
+
         Risk saved = riskRepository.save(risk);
 
         eventPublisher.publishEvent(new AuditEvent(
                 this,
                 "CREATE_RISK",
-                 getCurrentUserEmail(),
+                getCurrentUserEmail(),
                 "Risk",
-                 saved.getId(),
+                saved.getId(),
                 "Created risk: " + saved.getTitle()
         ));
 
