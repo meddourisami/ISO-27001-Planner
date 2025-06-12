@@ -33,6 +33,9 @@ public class Document {
     private LocalDate approvalDate;
     private LocalDate reviewDate;
 
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     private String content; // Text content (optional) if stored in DB
 
     private String fileName; // Original name

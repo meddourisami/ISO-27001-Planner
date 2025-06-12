@@ -7,6 +7,7 @@ import com.iso27001planner.entity.Document;
 import com.iso27001planner.entity.DocumentVersion;
 import com.iso27001planner.event.AuditEvent;
 import com.iso27001planner.exception.BusinessException;
+import com.iso27001planner.mapper.DocumentMapper;
 import com.iso27001planner.repository.CompanyRepository;
 import com.iso27001planner.repository.DocumentRepository;
 import com.iso27001planner.repository.DocumentVersionRepository;
@@ -43,12 +44,34 @@ public class DocumentService {
     private final DocumentVersionRepository versionRepository;
     private final CompanyRepository companyRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final DocumentMapper mapper;
 
     private final Path rootDir = Paths.get("uploads/documents");
 
     @PostConstruct
     public void init() throws IOException {
         Files.createDirectories(rootDir);
+    }
+
+    public List<DocumentDTO> getAllCurrentDocuments() {
+        return documentRepository.findAllActive().stream()
+                .map(mapper::toDTO)
+                .toList();
+    }
+
+    public DocumentDTO getById(Long id) {
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Document not found", HttpStatus.NOT_FOUND));
+        return mapper.toDTO(doc);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Document doc = documentRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Document not found", HttpStatus.NOT_FOUND));
+
+        doc.setDeleted(true); // ✅ Soft delete
+        documentRepository.save(doc);
     }
 
     @Transactional

@@ -29,6 +29,21 @@ public class AssetService {
     private final AssetMapper assetMapper;
     private final ApplicationEventPublisher eventPublisher;
 
+    public AssetDTO getAssetById(String id) {
+        Asset asset = assetRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Asset not found", HttpStatus.NOT_FOUND));
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "VIEW_ASSET",
+                getCurrentUserEmail(),
+                "Asset",
+                id,
+                "Viewed asset details"
+        ));
+        return assetMapper.toDTO(asset);
+    }
+
     public AssetDTO createAsset(AssetDTO dto) {
         User owner = userRepository.findByEmail(dto.getOwnerEmail())
                 .orElseThrow(() -> new BusinessException("Owner not found", HttpStatus.NOT_FOUND));

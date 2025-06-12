@@ -32,6 +32,25 @@ public class DocumentController {
     private final DocumentVersionRepository versionRepository;
     private final DocumentVersionMapper mapper;
 
+    @GetMapping
+    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
+    public ResponseEntity<List<DocumentDTO>> getAllDocuments() {
+        return ResponseEntity.ok(documentService.getAllCurrentDocuments());
+    }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
+    public ResponseEntity<DocumentDTO> getDocumentById(@PathVariable Long id) {
+        return ResponseEntity.ok(documentService.getById(id));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ISMS_ADMIN')")
+    public ResponseEntity<String> deleteDocument(@PathVariable Long id) {
+        documentService.delete(id);
+        return ResponseEntity.ok("Document deleted successfully.");
+    }
+
     @PostMapping
     @PreAuthorize("hasAuthority('ISMS_ADMIN')")
     public ResponseEntity<DocumentDTO> create(

@@ -20,6 +20,12 @@ public class AssetController {
     private final AssetService assetService;
     private final AssetExportService assetExportService;
 
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<AssetDTO> getAssetById(@PathVariable String id) {
+        return ResponseEntity.ok(assetService.getAssetById(id));
+    }
+
     @PreAuthorize("hasAuthority('ISMS_ADMIN')")
     @PostMapping
     public ResponseEntity<AssetDTO> create(@RequestBody AssetDTO dto) {

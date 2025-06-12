@@ -33,6 +33,20 @@ public class RiskService {
     private final ApplicationEventPublisher eventPublisher;
     private RiskScoringStrategy strategy;
 
+    public RiskDTO getRiskById(String id) {
+        Risk risk = riskRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Risk not found", HttpStatus.NOT_FOUND));
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "VIEW_RISK",
+                getCurrentUserEmail(),
+                "Risk",
+                risk.getId(),
+                "Viewed risk details"
+        ));
+        return riskMapper.toDTO(risk);
+    }
+
     public RiskDTO createRisk(RiskDTO dto) {
         Asset asset = null;
         if (dto.getAssetId() != null && !dto.getAssetId().isBlank()) {

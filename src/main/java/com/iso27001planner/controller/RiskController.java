@@ -24,6 +24,12 @@ public class RiskController {
     private final CsvExportService csvExportService;
     private final PdfExportService pdfExportService;
 
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<RiskDTO> getRiskById(@PathVariable String id) {
+        return ResponseEntity.ok(riskService.getRiskById(id));
+    }
+
     @PreAuthorize("hasAuthority('ISMS_ADMIN')")
     @PostMapping
     public ResponseEntity<RiskDTO> create(@RequestBody RiskDTO dto) {
