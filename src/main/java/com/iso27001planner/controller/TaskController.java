@@ -41,6 +41,13 @@ public class TaskController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
+    public ResponseEntity<Void> updateTask(@PathVariable UUID id, @RequestBody TaskDTO dto) {
+        taskService.updateTask(id, dto);
+        return ResponseEntity.ok().build();
+    }
+
 //    @PostMapping("/{taskId}/comments")
 //    public ResponseEntity<Void> comment(@PathVariable UUID taskId, @RequestBody TaskCommentDTO dto) {
 //        taskService.addComment(taskId, dto);
