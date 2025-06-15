@@ -15,6 +15,8 @@ public interface ControlRepository extends JpaRepository<Control, UUID> {
     // Find template controls (not yet assigned to a company)
     List<Control> findByCompanyIsNull();
 
+    boolean existsByCompanyId(Long companyId);
+
     List<Control> findByStatusAndCompany_Id(String status, Long companyId);
 
     List<Control> findByLastReviewBefore(LocalDate date);
