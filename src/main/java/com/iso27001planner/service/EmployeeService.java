@@ -9,6 +9,7 @@ import com.iso27001planner.exception.BusinessException;
 import com.iso27001planner.repository.EmployeeRepository;
 import com.iso27001planner.repository.TrainingRecordRepository;
 import com.iso27001planner.repository.TrainingRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,26 @@ public class EmployeeService {
         return employeeRepository.findByCompany_Id(companyId).stream()
                 .map(this::toDTO)
                 .toList();
+    }
+
+    @Transactional
+    public void updateEmployee(UUID id, EmployeeDTO dto) {
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Employee not found", HttpStatus.NOT_FOUND));
+
+        employee.setName(dto.getName());
+        employee.setDepartment(dto.getDepartment());
+        employee.setEmail(dto.getEmail());
+
+        employeeRepository.save(employee);
+    }
+
+    @Transactional
+    public void deleteEmployee(UUID id) {
+        if (!employeeRepository.existsById(id)) {
+            throw new BusinessException("Employee not found", HttpStatus.NOT_FOUND);
+        }
+        employeeRepository.deleteById(id);
     }
 
     private EmployeeDTO toDTO(Employee emp) {
