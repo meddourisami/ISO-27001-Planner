@@ -59,6 +59,13 @@ public class DocumentService {
                 .toList();
     }
 
+    public List<DocumentDTO> getDocumentsByCompany(Long companyId) {
+        return documentRepository.findByCompanyId(companyId)
+                .stream()
+                .map(mapper::toDTO)
+                .toList();
+    }
+
     public DocumentDTO getById(Long id) {
         Document doc = documentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Document not found", HttpStatus.NOT_FOUND));
@@ -108,7 +115,7 @@ public class DocumentService {
         String oldStatus = doc.getStatus();
 
         // Always set status back to draft if being updated
-        String newStatus = "under_review";
+        String newStatus = "Review";
         doc.setStatus(newStatus);
         doc.setReviewDate(LocalDate.now().plusMonths(12));
 
@@ -121,6 +128,56 @@ public class DocumentService {
         saveVersion(doc, file, nextVersion);
     }
 
+    @Transactional
+    public void updateDocument(Long docId, DocumentDTO dto, MultipartFile file) throws IOException {
+        Document doc = documentRepository.findById(docId)
+                .orElseThrow(() -> new BusinessException("Document not found", HttpStatus.NOT_FOUND));
+
+        String currentVersion = doc.getVersion();
+        String oldStatus = doc.getStatus();
+        String newStatus = "Review";
+
+        // Update metadata from DTO
+        doc.setTitle(dto.getTitle());
+        doc.setDescription(dto.getDescription());
+        doc.setType(dto.getType());
+        doc.setOwner(dto.getOwner());
+        doc.setApprover(dto.getApprover());
+        doc.setStatus(newStatus);
+        doc.setReviewDate(LocalDate.now().plusMonths(12));
+
+        // Calculate and apply version bump
+        String nextVersion = calculateNextVersion(currentVersion, oldStatus, newStatus);
+        doc.setVersion(nextVersion);
+
+        documentRepository.save(doc);
+
+        // 📁 Save file or reuse old file from last version
+        if (file != null && !file.isEmpty()) {
+            saveVersion(doc, file, nextVersion); // Upload new file
+        } else {
+            usePreviousFileAsNewVersion(doc, nextVersion); // Reuse last version's file
+        }
+    }
+
+    private void usePreviousFileAsNewVersion(Document doc, String versionLabel) {
+        DocumentVersion last = versionRepository.findTopByDocumentOrderByUploadedAtDesc(doc)
+                .orElseThrow(() -> new BusinessException("No previous version to copy", HttpStatus.BAD_REQUEST));
+
+        DocumentVersion newVersion = DocumentVersion.builder()
+                .version(versionLabel)
+                .status("Review")
+                .uploadedAt(LocalDate.now())
+                .filePath(last.getFilePath())
+                .fileType(last.getFileType())
+                .fileName(last.getFileName())
+                .fileSize(last.getFileSize())
+                .document(doc)
+                .build();
+
+        versionRepository.save(newVersion);
+    }
+
     private void saveVersion(Document doc, MultipartFile file, String versionLabel) throws IOException {
         String filename = UUID.randomUUID() + "-" + file.getOriginalFilename();
         Path dest = rootDir.resolve(filename);
@@ -128,7 +185,7 @@ public class DocumentService {
 
         DocumentVersion version = DocumentVersion.builder()
                 .version(versionLabel)
-                .status("under_review")
+                .status("Review")
                 .uploadedAt(LocalDate.now())
                 .filePath(dest.toString())
                 .fileType(file.getContentType())
@@ -165,7 +222,7 @@ public class DocumentService {
         int minor = Integer.parseInt(parts[1]);
 
         // If transitioning to or from approved status → major bump
-        if ("approved".equalsIgnoreCase(oldStatus) || "approved".equalsIgnoreCase(newStatus)) {
+        if ("Approved".equalsIgnoreCase(oldStatus) || "Approved".equalsIgnoreCase(newStatus)) {
             return (major + 1) + ".0";
         }
 
@@ -184,7 +241,7 @@ public class DocumentService {
             doc.setVersion(nextVersion);
             doc.setStatus(newStatus);
 
-            if ("approved".equalsIgnoreCase(newStatus)) {
+            if ("Approved".equalsIgnoreCase(newStatus)) {
                 doc.setApprovalDate(LocalDate.now());
                 doc.setApprover(getCurrentUserEmail());
             }

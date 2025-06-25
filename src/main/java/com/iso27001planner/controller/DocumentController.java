@@ -38,6 +38,12 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.getAllCurrentDocuments());
     }
 
+    @GetMapping("/company/{companyId}")
+    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
+    public ResponseEntity<List<DocumentDTO>> getCompanyDocuments(@PathVariable Long companyId) {
+        return ResponseEntity.ok(documentService.getDocumentsByCompany(companyId));
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
     public ResponseEntity<DocumentDTO> getDocumentById(@PathVariable Long id) {
@@ -60,15 +66,15 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.createDocument(dto, file));
     }
 
-    @PutMapping("/{id}/upload")
+    @PutMapping("/{id}/update")
     @PreAuthorize("hasAuthority('ISMS_ADMIN')")
-    public ResponseEntity<String> uploadVersion(
+    public ResponseEntity<String> updateDocument(
             @PathVariable Long id,
-            @RequestParam("version") String version,
-            @RequestParam("file") MultipartFile file
+            @RequestPart("data") DocumentDTO dto,
+            @RequestPart(value = "file", required = false) MultipartFile file
     ) throws IOException {
-        documentService.uploadNewVersion(id, file);
-        return ResponseEntity.ok("New version uploaded.");
+        documentService.updateDocument(id, dto, file);
+        return ResponseEntity.ok("Document updated successfully.");
     }
 
     @GetMapping("/{id}/versions")

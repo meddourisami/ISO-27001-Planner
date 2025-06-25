@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +39,22 @@ public class NonConformityController {
     @GetMapping("/company/{companyId}")
     public ResponseEntity<List<NonConformityDTO>> listByCompany(@PathVariable Long companyId) {
         return ResponseEntity.ok(service.listByCompany(companyId));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ISMS_ADMIN')")
+    public ResponseEntity<NonConformityDTO> updateNonConformity(
+            @PathVariable String id,
+            @RequestBody NonConformityDTO dto
+    ) {
+        return ResponseEntity.ok(service.update(id, dto));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ISMS_ADMIN')")
+    public ResponseEntity<Void> deleteNonConformity(@PathVariable String id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/upload-evidence")

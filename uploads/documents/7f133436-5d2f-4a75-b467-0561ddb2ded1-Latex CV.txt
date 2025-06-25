@@ -1,0 +1,152 @@
+\documentclass{resume} % Use the custom resume.cls style
+
+\usepackage[left=0.4 in,top=0.4in,right=0.4 in,bottom=0.4in]{geometry} % Document margins
+\newcommand{\tab}[1]{\hspace{.2667\textwidth}\rlap{#1}} 
+\newcommand{\itab}[1]{\hspace{0em}\rlap{#1}}
+\name{Meddouri Sami} % Your name
+% You can merge both of these into a single line, if you do not have a website.
+\address{+216 96 550 372 \\ Tunisia, Tunis} 
+\address{\href{mailto:meddourisami10@gmail.com}{meddourisami10@gmail.com} \\ \href{https://www.linkedin.com/in/sami-meddouri-b1017b1b7/}{linkedin.com/Sami Meddouri}} \\
+}
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	OBJECTIVE
+%----------------------------------------------------------------------------------------
+
+\begin{rSection}{OBJECTIVE}
+
+ Motivated software engineering student passionate about leveraging technology to solve problems. Currently pursuing
+ a software Engineering degree at Faculté des sciences Tunis, where I am developing a strong foundation
+ in computer science principles, programming languages, and software development methodologies. I enjoy applying
+ my skills to create innovative solutions. Eager to contribute and learn in the software industry, I am actively
+ seeking end of studies internship to further develop my expertise and make meaningful contributions
+ to impactful projects.}
+
+
+\end{rSection}
+%----------------------------------------------------------------------------------------
+%	EDUCATION SECTION
+%----------------------------------------------------------------------------------------
+
+\begin{rSection}{Education}
+
+{\bf  Software Engineering Degree}, Faculté des sciences Tunis \hfill {Expected 2025}\\
+
+
+{\bf  Preparatory Cycle Mathematics, Physics and Computer science}, \hfill {2020 - 2022}\\
+ Faculté des sciences 
+ 
+{\bf  Baccalaureate of Mathematics}, Pioneer High School of Beja \hfill {2016 - 2020}\\
+ With Highest Honors
+
+
+\end{rSection}
+
+%----------------------------------------------------------------------------------------
+% TECHINICAL STRENGTHS	
+%----------------------------------------------------------------------------------------
+
+
+\begin{rSection}{EXPERIENCE}
+
+\textbf{Mobile Developer Intern} \hfill  July 2024 - September 2024\\
+iTes Lab \hfill \textit{Tunis, Tunisia}
+ \begin{itemize}
+    \itemsep -3pt {} 
+     \item  Developed and designed a local first e-commerce mobile application using React Native, SQLlite, Figma for design, Postman and Expo for testing.
+ \end{itemize}
+
+\textbf{Sotware Engineer Intern} \hfill  July 2023 - August 2023\\
+LineData Technologies \hfill \textit{Tunis, Tunisia}
+ \begin{itemize}
+    \itemsep -3pt {} 
+     \item  Developed RESTfull and GraphQL APIs for entities using C\#, .NET framework, Microsoft SQL Server, Swagger
+ and Postman for testing the APIs.
+ \end{itemize}
+ 
+\textbf{Internship} \hfill  June 2021 - August 2021\\
+Tunisian Postal Service \hfill \textit{Beja, Tunisia}
+ \begin{itemize}
+    \itemsep -3pt {} 
+     \item Assigned various tasks including working as a counter agent and performing verifications on operations and
+ checks. Gained insight into postal applications and their security measures.
+ \end{itemize}
+
+\end{rSection} 
+
+%----------------------------------------------------------------------------------------
+%	WORK EXPERIENCE SECTION
+%----------------------------------------------------------------------------------------
+
+\begin{rSection}{PROJECTS}
+\vspace{-1.25em}
+\item \textbf{Hotel Management App.}  {Built an hotel management application for reserving, searching and managing hotel
+ rooms using Java, Spring Boot Framework for the backend, React for the frontend, MySQL, Swagger and Postman for testing the APIs.}
+\item \textbf{Cloud Project.}  {Deployed a scalable 3-tier application on AWS, utilizing AWS services such as EC2, S3, RDS, and Elastic Load Balancer (ELB) to ensure high availability and fault tolerance.}
+\item \textbf{Grades Management App.} {Build an application for managing the grades for teachers and administration using
+ Java, MySQL and JavaFX for implenting the GUI.}
+\item \textbf{E-commerce App} {Build an e-commerce app using Python, Flask and Behave for testing and Gherkin for testing
+ the behavior of the project following the TDD and BDD approaches.}\\
+ \\
+\end{rSection}
+\\
+\\
+\begin{rSection}{SKILLS}
+
+\begin{tabular}{ @{} >{\bfseries}l @{\hspace{6ex}} l }
+ Programming Languages & Python, Java, C, C\#, C++
+\\
+ Databases & MySQL, Oracle, Microsoft SQL Server, SQLlite, MongoDB\\
+ Frameworks &  Spring Boot, Entity(.Net6), React, React Native, Flask \\
+ IA and Data Science &  Pandas, Matplotlib, Numpy, Seaborn, Scikit-learn, LLMs\\
+ Cloud and DevOps &   AWS, Azure, Docker, Jenkins, Kubernetes Ansible, Git/Github
+ \\
+ Web Development &  HTML, CSS, Javascript, JEE\\
+\end{tabular}\\
+\end{rSection}
+
+%----------------------------------------------------------------------------------------
+\begin{rSection}{Certificates} 
+\begin{itemize}
+    \item Fundamentals of Ansible \hfill  Redhat
+    \item Azure Fundamentals  \hfill  Microsoft
+    \item Azure Data Fundamentals  \hfill  Microsoft
+    \item Azure AI Fundamentals  \hfill  Microsoft
+    \item Generative AI Fundamentals  \hfill  Pragmatic AI Labs
+    \item AWS Academy Cloud Foundations  \hfill  AWS
+    \item Virtualization, Docker, and Kubernetes for Data Engineering  \hfill  Pragmatic AI Labs
+    \item Test and Behavior Driven Development  \hfill  IBM
+    \item NoSQL database Basics  \hfill  IBM
+    \item Version Control  \hfill  Meta
+\end{itemize}
+
+
+\end{rSection}
+
+
+\begin{rSection}{Extra-Curricular Activities} 
+\begin{itemize}
+    \item 	 Member in Google Developer Club FST. 
+    \item	 Member in Club Logiciels Libre (CLL).
+    \item	 Member in Chess Enthusiast INSAT.
+\end{itemize}
+
+
+\end{rSection}
+
+%----------------------------------------------------------------------------------------
+\begin{rSection}{Languages} 
+\begin{itemize}
+   \item Arabic  \hfill  Mother Tongue
+   \item English  \hfill  Professional
+   \item French  \hfill  Bilingual
+   \item Spanish  \hfill  Basic
+\end{itemize}
+
+
+\end{rSection}
+
+
+\end{document}

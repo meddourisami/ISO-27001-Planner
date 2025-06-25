@@ -20,4 +20,8 @@ public interface ControlRepository extends JpaRepository<Control, UUID> {
     List<Control> findByStatusAndCompany_Id(String status, Long companyId);
 
     List<Control> findByLastReviewBefore(LocalDate date);
+
+    List<Control> findAllById(UUID id);
+
+    List<Control> findByIdIn(List<UUID> ids);
 }
