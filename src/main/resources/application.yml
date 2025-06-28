@@ -28,6 +28,8 @@ spring:
     multipart:
       max-request-size: 50MB
       max-file-size: 50MB
+  profiles:
+    active: dev
 
 server:
   port: 8080

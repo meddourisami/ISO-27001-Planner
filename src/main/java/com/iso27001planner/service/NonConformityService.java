@@ -74,7 +74,7 @@ public class NonConformityService {
 
     @Transactional
     public NonConformityDTO update(String id, NonConformityDTO dto) {
-        NonConformity nc = repository.findById(UUID.fromString(id))
+        NonConformity nc = repository.findById(UUID.fromString(id.trim()))
                 .orElseThrow(() -> new BusinessException("Non-Conformity not found", HttpStatus.NOT_FOUND));
 
         nc.setTitle(dto.getTitle());

@@ -281,6 +281,13 @@ public class UserManagementService {
         ));
     }
 
+    public List<UserDTO> listIsmsAdmins() {
+        List<User> admins = userRepository.findByRole(Role.ISMS_ADMIN);
+        return admins.stream()
+                .map(this::mapToDto)
+                .toList();
+    }
+
     public UserDTO mapToDto(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());

@@ -145,4 +145,10 @@ public class UserController {
                 .toList();
         return ResponseEntity.ok(roles);
     }
+
+    @GetMapping("/admins")
+    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
+    public ResponseEntity<List<UserDTO>> listIsmsAdmins() {
+        return ResponseEntity.ok(userManagementService.listIsmsAdmins());
+    }
 }

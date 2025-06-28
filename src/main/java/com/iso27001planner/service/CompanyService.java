@@ -120,4 +120,10 @@ public class CompanyService {
 
         return companyMapper.toDto(company);
     }
+
+    public CompanyDTO getCompanyById(Long id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Company not found", HttpStatus.NOT_FOUND));
+        return companyMapper.toDto(company);
+    }
 }

@@ -35,4 +35,10 @@ public class CompanyController {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(companyService.getCurrentUserCompany(email));
     }
+
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN', 'ISMS_ADMIN')")
+    public ResponseEntity<CompanyDTO> getCompanyById(@PathVariable Long id) {
+        return ResponseEntity.ok(companyService.getCompanyById(id));
+    }
 }
