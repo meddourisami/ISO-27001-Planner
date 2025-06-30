@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -91,17 +92,17 @@ public class DocumentService {
                 .description(dto.getDescription())
                 .type(dto.getType())
                 .status("draft")
-                .version("v1.0")
+                .version("1.0")
                 .owner(dto.getOwner())
                 .approver(null)
                 .approvalDate(null)
-                .reviewDate(LocalDate.now().plusMonths(12))
+                .reviewDate(LocalDate.parse(dto.getReviewDate()))
                 .content(dto.getContent())
                 .company(company)
                 .build();
 
         Document saved = documentRepository.save(doc);
-        saveVersion(saved, file, "v1.0");
+        saveVersion(saved, file, "1.0");
 
         return toDTO(saved);
     }
@@ -133,9 +134,11 @@ public class DocumentService {
         Document doc = documentRepository.findById(docId)
                 .orElseThrow(() -> new BusinessException("Document not found", HttpStatus.NOT_FOUND));
 
+
+
         String currentVersion = doc.getVersion();
         String oldStatus = doc.getStatus();
-        String newStatus = "Review";
+        String newStatus = dto.getStatus();
 
         // Update metadata from DTO
         doc.setTitle(dto.getTitle());
@@ -144,7 +147,7 @@ public class DocumentService {
         doc.setOwner(dto.getOwner());
         doc.setApprover(dto.getApprover());
         doc.setStatus(newStatus);
-        doc.setReviewDate(LocalDate.now().plusMonths(12));
+        doc.setReviewDate(LocalDate.parse(dto.getReviewDate()));
 
         // Calculate and apply version bump
         String nextVersion = calculateNextVersion(currentVersion, oldStatus, newStatus);
@@ -218,7 +221,10 @@ public class DocumentService {
         if (current == null || current.isBlank()) return "1.0";
 
         String[] parts = current.split("\\.");
+
         int major = Integer.parseInt(parts[0]);
+
+
         int minor = Integer.parseInt(parts[1]);
 
         // If transitioning to or from approved status → major bump
@@ -227,7 +233,9 @@ public class DocumentService {
         }
 
         // Otherwise: minor revision
+
         return major + "." + (minor + 1);
+
     }
 
     @Transactional

@@ -1,0 +1,34 @@
+<html>
+ 
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content ="width=device-width>
+<title>bonjour<title>
+</head>
+
+<body bgcolor="#9542">
+<hl><i>cours HTML CSS</i></hl>
+<ul>
+<li><h2>introduction </h2></li>
+<div align="right"><p>Dans cette premiére page web nous allons définir briévement 3 notions </p></div>
+<li><h2>notions:</h2></li>
+</ul>
+<p><ol start="1" type="I">
+<li><h3> HTML </h3>
+<li><h3> CSS </h3>
+<li value="5"><h3> Javascript </h3></li>
+<img src="C:\ "alt="smile content "height="300" align="top"/>
+
+
+<figure>
+<img src="C:\ "alt="smile content "height="300" align="top"/>
+<img src="C:\ "alt="smile content "height="300" align="top"/>
+<img src="C:\ "alt="smile content "height="300" align="top"/>
+<img src="C:\ "alt="smile content "height="300" align="top"/>
+<figcaption>kif kif </figcaption>
+<a href="http://www.google.com"title="page google "target="_blank">google</a>
+</figure>
+
+
+</body>
+</html>

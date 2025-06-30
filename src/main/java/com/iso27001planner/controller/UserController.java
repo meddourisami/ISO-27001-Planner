@@ -89,7 +89,7 @@ public class UserController {
     }
 
     @DeleteMapping("/delete-member")
-    @PreAuthorize("hasAuthority('ISMS_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<String> deleteUser(@RequestParam String email) {
         String adminEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         userManagementService.deleteUser(adminEmail, email);

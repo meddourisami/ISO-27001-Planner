@@ -205,6 +205,28 @@ public class UserManagementService {
         ));
     }
 
+    @Transactional
+    public void deleteUserAsSuperAdmin(String userEmail) {
+        User target = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
+
+        if (target.getRole() == Role.SUPER_ADMIN) {
+            throw new BusinessException("Cannot delete another SUPER_ADMIN", HttpStatus.FORBIDDEN);
+        }
+
+        refreshTokenService.revokeToken(target); // optional token cleanup
+        userRepository.delete(target);
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "DELETE_USER_BY_SUPER_ADMIN",
+                getCurrentUserEmail(),
+                "User",
+                userEmail,
+                "Super admin deleted user: " + userEmail
+        ));
+    }
+
     public Page<UserDTO> listCompanyUsers(String adminEmail, Pageable pageable, String roleFilter) {
         User admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new BusinessException("Admin not found", HttpStatus.UNAUTHORIZED));
@@ -294,6 +316,11 @@ public class UserManagementService {
         dto.setEmail(user.getEmail());
         dto.setFullName(user.getFullName());
         dto.setRole(String.valueOf(user.getRole()));
+        dto.setCompanyId(user.getCompany().getId());
         return dto;
+    }
+
+    private String getCurrentUserEmail() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 }
