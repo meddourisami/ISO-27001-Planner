@@ -3,6 +3,8 @@ package com.iso27001planner.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "risks")
 @Getter

@@ -10,7 +10,6 @@ import com.iso27001planner.repository.CompanyRepository;
 import com.iso27001planner.repository.RiskRepository;
 import com.iso27001planner.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -20,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +34,7 @@ public class RiskService {
     private RiskScoringStrategy strategy;
 
     public RiskDTO getRiskById(String id) {
-        Risk risk = riskRepository.findById(id)
+        Risk risk = riskRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new BusinessException("Risk not found", HttpStatus.NOT_FOUND));
         eventPublisher.publishEvent(new AuditEvent(
                 this,
@@ -93,23 +93,23 @@ public class RiskService {
     }
 
     public void deleteRisk(String id) {
-        Risk risk = riskRepository.findById(id)
+        Risk risk = riskRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new BusinessException("Risk not found", HttpStatus.NOT_FOUND));
 
-        riskRepository.deleteById(id);
+        riskRepository.deleteById(UUID.fromString(id));
 
         eventPublisher.publishEvent(new AuditEvent(
                 this,
                 "DELETE_RISK",
                  getCurrentUserEmail(),
                 "Risk",
-                 risk.getId(),
+                risk.getId(),
                 "Deleted risk: " + risk.getTitle()
         ));
     }
 
     public RiskDTO updateRisk(String id, RiskDTO dto) {
-        Risk risk = riskRepository.findById(id)
+        Risk risk = riskRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new BusinessException("Risk not found", HttpStatus.NOT_FOUND));
         risk.setTitle(dto.getTitle());
         risk.setDescription(dto.getDescription());

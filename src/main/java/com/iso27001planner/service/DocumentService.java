@@ -163,6 +163,40 @@ public class DocumentService {
         }
     }
 
+    @Transactional
+    public void approveDocument(Long docId, String approverEmail) {
+        Document doc = documentRepository.findById(docId)
+                .orElseThrow(() -> new BusinessException("Document not found", HttpStatus.NOT_FOUND));
+
+        String currentVersion = doc.getVersion();
+        String oldStatus = doc.getStatus();
+        String newStatus = "Approved";
+
+        // Update approval-specific fields only
+        doc.setStatus(newStatus);
+        doc.setApprover(approverEmail);
+        doc.setApprovalDate(LocalDate.now());
+        doc.setReviewDate(LocalDate.now().plusMonths(1));
+
+        // Calculate version bump
+        String nextVersion = calculateNextVersion(currentVersion, oldStatus, newStatus);
+        doc.setVersion(nextVersion);
+
+        documentRepository.save(doc);
+
+        // Save the approval action as a new version using the latest file (reuse)
+        usePreviousFileAsNewVersion(doc, nextVersion);
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "APPROVE_DOCUMENT",
+                approverEmail,
+                "Document",
+                doc.getId().toString(),
+                "Approved document: " + doc.getTitle()
+        ));
+    }
+
     private void usePreviousFileAsNewVersion(Document doc, String versionLabel) {
         DocumentVersion last = versionRepository.findTopByDocumentOrderByUploadedAtDesc(doc)
                 .orElseThrow(() -> new BusinessException("No previous version to copy", HttpStatus.BAD_REQUEST));

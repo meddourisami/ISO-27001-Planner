@@ -13,6 +13,7 @@ import com.iso27001planner.repository.NonConformityRepository;
 import com.iso27001planner.repository.RiskRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NonConformityService {
@@ -74,47 +76,85 @@ public class NonConformityService {
 
     @Transactional
     public NonConformityDTO update(String id, NonConformityDTO dto) {
-        NonConformity nc = repository.findById(UUID.fromString(id.trim()))
-                .orElseThrow(() -> new BusinessException("Non-Conformity not found", HttpStatus.NOT_FOUND));
+        log.debug("🔍 Starting update of NonConformity: {}", id);
+        log.debug("📦 Incoming DTO: {}", dto);
 
-        nc.setTitle(dto.getTitle());
-        nc.setDescription(dto.getDescription());
-        nc.setSource(dto.getSource());
-        nc.setSourceReference(dto.getSourceReference());
-        nc.setDateIdentified(LocalDate.parse(dto.getDateIdentified()));
-        nc.setSeverity(dto.getSeverity());
-        nc.setStatus(dto.getStatus());
-        nc.setOwner(dto.getOwner());
-        nc.setDueDate(LocalDate.parse(dto.getDueDate()));
-        nc.setCorrectiveActions(dto.getCorrectiveActions());
-        nc.setEvidence(dto.getEvidence());
-        nc.setVerificationStatus(dto.getVerificationStatus());
-        nc.setVerificationDate(dto.getVerificationDate() != null ? LocalDate.parse(dto.getVerificationDate()) : null);
-        nc.setVerifiedBy(dto.getVerifiedBy());
-        nc.setComments(dto.getComments());
+        UUID ncId;
+        try {
+            ncId = UUID.fromString(id.trim());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException("Invalid UUID format for NonConformity ID", HttpStatus.BAD_REQUEST);
+        }
 
-        // Handle control & risk associations
-        nc.setRelatedControls(
-                controlRepo.findAllById(
-                        dto.getRelatedControls().stream()
-                                .map(UUID::fromString)
-                                .toList()
-                )
-        );
-        nc.setRelatedRisks(
-                riskRepo.findAllById(dto.getRelatedRisks())
-        );
+        NonConformity nc = repository.findById(ncId)
+                .orElseThrow(() -> new BusinessException("Non-Conformity not found with ID: " + id, HttpStatus.NOT_FOUND));
 
-        eventPublisher.publishEvent(new AuditEvent(
-                this,
-                "UPDATE_NONCONFORMITY",
-                getCurrentUserEmail(),
-                "NonConformity",
-                nc.getId().toString(),
-                "Updated non-conformity: " + nc.getTitle()
-        ));
+        try {
+            // Update fields
+            nc.setTitle(dto.getTitle());
+            nc.setDescription(dto.getDescription());
+            nc.setSource(dto.getSource());
+            nc.setSourceReference(dto.getSourceReference());
+            nc.setDateIdentified(LocalDate.parse(dto.getDateIdentified()));
+            nc.setSeverity(dto.getSeverity());
+            nc.setStatus(dto.getStatus());
+            nc.setOwner(dto.getOwner());
+            nc.setDueDate(LocalDate.parse(dto.getDueDate()));
+            nc.setCorrectiveActions(dto.getCorrectiveActions());
+            nc.setEvidence(dto.getEvidence());
+            nc.setVerificationStatus(dto.getVerificationStatus());
+            if (dto.getVerificationDate() != null && !dto.getVerificationDate().isBlank()) {
+                nc.setVerificationDate(LocalDate.parse(dto.getVerificationDate()));
+            } else {
+                nc.setVerificationDate(null);
+            }
+            nc.setVerifiedBy(dto.getVerifiedBy());
+            nc.setComments(dto.getComments());
 
-        return toDTO(repository.save(nc));
+            // Fetch related controls
+            log.debug("🔗 Resolving relatedControls: {}", dto.getRelatedControls());
+            List<UUID> controlIds = dto.getRelatedControls().stream()
+                    .map(UUID::fromString)
+                    .toList();
+            List<Control> controls = controlRepo.findAllById(controlIds);
+            nc.setRelatedControls(controls);
+            log.debug("✅ Fetched Controls: {}", controls.stream().map(Control::getId).toList());
+
+            // Fetch related risks
+            log.debug("🔗 Resolving relatedRisks: {}", dto.getRelatedRisks());
+            List<String> riskIds = dto.getRelatedRisks();
+            List<Risk> risks = riskRepo.findAllById(riskIds.toString());
+            nc.setRelatedRisks(risks);
+            log.debug("✅ Fetched Risks: {}", risks.stream().map(Risk::getId).toList());
+
+            // Optional: Check status triggers
+//            if ("verified".equalsIgnoreCase(nc.getStatus()) || "resolved".equalsIgnoreCase(nc.getStatus())) {
+//                notificationService.createNotification(
+//                        nc.getCompany(),
+//                        "nonconformity",
+//                        "Status changed to: " + nc.getStatus(),
+//                        "Non-conformity '" + nc.getTitle() + "' was updated.",
+//                        false
+//                );
+//            }
+
+            eventPublisher.publishEvent(new AuditEvent(
+                    this,
+                    "UPDATE_NONCONFORMITY",
+                    getCurrentUserEmail(),
+                    "NonConformity",
+                    nc.getId().toString(),
+                    "Updated non-conformity: " + nc.getTitle()
+            ));
+
+            NonConformityDTO result = toDTO(repository.save(nc));
+            log.debug("📤 Updated NonConformity DTO: {}", result);
+            return result;
+
+        } catch (Exception e) {
+            log.error("❌ Failed to update NonConformity: {}", e.getMessage(), e);
+            throw new BusinessException("Update failed: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @Transactional
@@ -143,7 +183,7 @@ public class NonConformityService {
 
         List<String> riskIds = nc.getRelatedRisks() != null
                 ? nc.getRelatedRisks().stream()
-                .map(Risk::getId)
+                .map(r -> r.getId().toString())  // force String
                 .toList()
                 : List.of();
 

@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.UUID;
 
-public interface RiskRepository extends JpaRepository<Risk, String> {
+public interface RiskRepository extends JpaRepository<Risk, UUID> {
     List<Risk> findByCompany_Id(Long companyId);
     List<Risk> findByAsset_Id(String assetId);
     List<Risk> findAllById(String id);

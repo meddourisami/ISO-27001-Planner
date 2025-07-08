@@ -40,7 +40,7 @@ public class TaskService {
                 .progress(dto.getProgress())
                 .relatedControl(dto.getRelatedControl())
                 .company(companyRepository.findById(dto.getCompanyId()).orElse(null))
-                .risk(dto.getRiskId() != null ? riskRepository.findById(String.valueOf(dto.getRiskId())).orElse(null) : null)
+                .risk(dto.getRiskId() != null ? riskRepository.findById(UUID.fromString(String.valueOf(dto.getRiskId()))).orElse(null) : null)
                 .build();
 
         return toDTO(taskRepository.save(task));

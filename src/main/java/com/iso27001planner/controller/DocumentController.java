@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -102,4 +103,13 @@ public class DocumentController {
         List<DocumentVersion> results = versionRepository.searchByContent(query);
         return ResponseEntity.ok(results.stream().map(mapper::toDTO).toList());
     }
+
+    @PutMapping("/{id}/approve")
+    @PreAuthorize("hasAuthority('ISMS_ADMIN')")
+    public ResponseEntity<String> approveDocument(@PathVariable Long id) {
+        String approverEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        documentService.approveDocument(id, approverEmail);
+        return ResponseEntity.ok("Document approved successfully.");
+    }
+
 }
