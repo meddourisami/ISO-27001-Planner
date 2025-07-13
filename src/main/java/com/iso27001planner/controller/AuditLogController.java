@@ -7,10 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -65,11 +62,23 @@ public class AuditLogController {
         auditExportService.exportPdf(response.getOutputStream());
     }
 
-    @GetMapping("/export/pdf-table")
+//    @GetMapping("/export/pdf-table")
+//    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
+//    public void exportPdfTable(HttpServletResponse response) throws Exception {
+//        response.setContentType("application/pdf");
+//        response.setHeader("Content-Disposition", "attachment; filename=audit-log-table.pdf");
+//        auditExportService.exportPdfTable(response.getOutputStream());
+//    }
+
+    @GetMapping("/export/audit/pdf-table/{companyId}")
     @PreAuthorize("hasAuthority('SUPER_ADMIN')")
-    public void exportPdfTable(HttpServletResponse response) throws Exception {
+    public void exportAuditPdf(
+            @PathVariable Long companyId,
+            @RequestParam List<String> sections,
+            HttpServletResponse response
+    ) throws Exception {
         response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "attachment; filename=audit-log-table.pdf");
-        auditExportService.exportPdfTable(response.getOutputStream());
+        response.setHeader("Content-Disposition", "attachment; filename=audit-report.pdf");
+        auditExportService.writeAuditPdfWithSections(sections, response.getOutputStream());
     }
 }

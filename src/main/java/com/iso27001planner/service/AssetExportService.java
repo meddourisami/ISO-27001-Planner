@@ -1,8 +1,10 @@
 package com.iso27001planner.service;
 
 import com.iso27001planner.entity.Asset;
+import com.iso27001planner.entity.Risk;
 import com.iso27001planner.event.AuditEvent;
 import com.iso27001planner.repository.AssetRepository;
+import com.iso27001planner.repository.RiskRepository;
 import com.lowagie.text.*;
 import com.lowagie.text.Image;
 import com.lowagie.text.pdf.PdfPCell;
@@ -23,6 +25,9 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -31,6 +36,7 @@ public class AssetExportService {
 
     private final AssetRepository assetRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final RiskRepository riskRepository;
 
     // === CSV EXPORT ===
     public void exportCsv(Long companyId, OutputStream out) throws IOException {
@@ -146,7 +152,7 @@ public class AssetExportService {
     // === BRANDING HELPERS ===
     private void addLogo(Document doc) {
         try {
-            Image logo = Image.getInstance(getClass().getClassLoader().getResource("static/LOGO.png"));
+            Image logo = Image.getInstance(Objects.requireNonNull(getClass().getClassLoader().getResource("static/LOGO.png")));
             logo.scaleToFit(90, 90);
             logo.setAlignment(Element.ALIGN_CENTER);
             doc.add(logo);
@@ -167,6 +173,95 @@ public class AssetExportService {
                 FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 10, Color.GRAY));
         footer.setAlignment(Element.ALIGN_CENTER);
         doc.add(footer);
+    }
+
+    public void exportCustomPdf(Long companyId, List<String> sections, OutputStream outputStream) throws Exception {
+        List<Asset> assets = assetRepository.findByCompany_Id(companyId);
+
+        Document doc = new Document(PageSize.A4);
+        PdfWriter.getInstance(doc, outputStream);
+        doc.open();
+
+        addLogo(doc);
+        addTitle(doc, "ISO 27001 – Asset Report");
+
+        if (sections.contains("summary")) {
+            addAssetSummary(doc, assets);
+        }
+        if (sections.contains("details")) {
+            addAssetDetailsTable(doc, assets);
+        }
+        if (sections.contains("classification")) {
+            addClassificationBreakdown(doc, assets);
+        }
+        if (sections.contains("risks")) {
+            addAssetAssociatedRisks(doc, assets);
+        }
+
+        addFooter(doc);
+        doc.close();
+    }
+
+    private void addAssetSummary(Document doc, List<Asset> assets) throws DocumentException {
+        Paragraph summary = new Paragraph("Total Assets: " + assets.size());
+        summary.setSpacingAfter(10);
+        doc.add(summary);
+    }
+
+    private void addAssetDetailsTable(Document doc, List<Asset> assets) throws DocumentException {
+        PdfPTable table = new PdfPTable(6);
+        table.setWidthPercentage(100);
+        table.setWidths(new int[]{3, 3, 2, 2, 2, 2});
+
+        Stream.of("Name", "Type", "Classification", "Owner", "Location", "Status").forEach(col -> {
+            PdfPCell cell = new PdfPCell(new Phrase(col, FontFactory.getFont(FontFactory.HELVETICA_BOLD)));
+            cell.setBackgroundColor(Color.LIGHT_GRAY);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(cell);
+        });
+
+        for (Asset a : assets) {
+            table.addCell(a.getName());
+            table.addCell(a.getType());
+            table.addCell(a.getClassification());
+            table.addCell(String.valueOf(a.getOwner()));
+            table.addCell(a.getLocation());
+            table.addCell(a.getStatus());
+        }
+
+        doc.add(table);
+        doc.add(Chunk.NEWLINE);
+    }
+
+    private void addClassificationBreakdown(Document doc, List<Asset> assets) throws DocumentException {
+        Map<String, Long> classificationCounts = assets.stream()
+                .collect(Collectors.groupingBy(Asset::getClassification, Collectors.counting()));
+
+        Paragraph header = new Paragraph("Classification Breakdown", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14));
+        doc.add(header);
+
+        for (Map.Entry<String, Long> entry : classificationCounts.entrySet()) {
+            doc.add(new Paragraph(entry.getKey() + ": " + entry.getValue()));
+        }
+
+        doc.add(Chunk.NEWLINE);
+    }
+
+    private void addAssetAssociatedRisks(Document doc, List<Asset> assets) throws DocumentException {
+        Paragraph header = new Paragraph("Associated Risks by Asset", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14));
+        doc.add(header);
+
+        for (Asset asset : assets) {
+            List<Risk> risks = riskRepository.findByAsset_Id(asset.getId());
+            if (!risks.isEmpty()) {
+                doc.add(new Paragraph("• " + asset.getName() + " (" + risks.size() + " risks)"));
+                for (Risk r : risks) {
+                    doc.add(new Paragraph("   → " + r.getTitle() + " [Severity: " + r.getSeverity() + "]"));
+                }
+            }
+        }
+
+        doc.add(Chunk.NEWLINE);
     }
 
     private String getCurrentUserEmail() {

@@ -77,12 +77,24 @@ public class RiskController {
         pdfExportService.writeRisksToPdf(companyId, response.getOutputStream());
     }
 
+//    @GetMapping("/export/pdf-table/{companyId}")
+//    @PreAuthorize("hasAuthority('ISMS_ADMIN')")
+//    public void exportPdfTable(@PathVariable Long companyId, HttpServletResponse response) throws Exception {
+//        response.setContentType("application/pdf");
+//        String filename = "risk-report_" + LocalDate.now() + ".pdf";
+//        response.setHeader("Content-Disposition", "attachment; filename=" + filename);
+//        pdfExportService.writeRisksToPdfTable(companyId, response.getOutputStream());
+//    }
+
     @GetMapping("/export/pdf-table/{companyId}")
     @PreAuthorize("hasAuthority('ISMS_ADMIN')")
-    public void exportPdfTable(@PathVariable Long companyId, HttpServletResponse response) throws Exception {
+    public void exportCustomRiskReport(
+            @PathVariable Long companyId,
+            @RequestParam List<String> sections,
+            HttpServletResponse response
+    ) throws Exception {
         response.setContentType("application/pdf");
-        String filename = "risk-report_" + LocalDate.now() + ".pdf";
-        response.setHeader("Content-Disposition", "attachment; filename=" + filename);
-        pdfExportService.writeRisksToPdfTable(companyId, response.getOutputStream());
+        response.setHeader("Content-Disposition", "attachment; filename=custom-risk-report.pdf");
+        pdfExportService.generateCustomRiskReport(companyId, sections, response.getOutputStream());
     }
 }

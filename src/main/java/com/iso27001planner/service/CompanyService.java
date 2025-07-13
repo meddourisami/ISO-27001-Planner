@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -27,12 +28,13 @@ public class CompanyService {
     private final PasswordEncoder passwordEncoder;
     private final ControlRepository controlRepository;
     private final DocumentTemplateRepository documentTemplateRepository;
+    private final DocumentTemplateService templateService;
     private final DocumentRepository documentRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final CompanyMapper companyMapper;
 
     @Transactional
-    public void createCompanyWithAdmin(AdminUserCreationRequest request) {
+    public void createCompanyWithAdmin(AdminUserCreationRequest request) throws IOException {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException("User already exists", HttpStatus.CONFLICT);
         }
@@ -87,6 +89,8 @@ public class CompanyService {
 
             documentRepository.save(doc);
         });
+
+        templateService.seedTemplatesToCompany(company.getId());
     }
 
     @Transactional

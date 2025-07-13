@@ -10,6 +10,7 @@ import com.iso27001planner.service.DocumentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -39,10 +40,26 @@ public class DocumentController {
         return ResponseEntity.ok(documentService.getAllCurrentDocuments());
     }
 
+//    @GetMapping("/company/{companyId}")
+//    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
+//    public ResponseEntity<List<DocumentDTO>> getCompanyDocuments(@PathVariable Long companyId) {
+//        return ResponseEntity.ok(documentService.getDocumentsByCompany(companyId));
+//    }
+
     @GetMapping("/company/{companyId}")
     @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
-    public ResponseEntity<List<DocumentDTO>> getCompanyDocuments(@PathVariable Long companyId) {
-        return ResponseEntity.ok(documentService.getDocumentsByCompany(companyId));
+    public ResponseEntity<Page<DocumentDTO>> getCompanyDocuments(
+            @PathVariable Long companyId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String type,
+            @RequestParam(defaultValue = "title") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortOrder
+    ) {
+        Page<DocumentDTO> result = documentService.getDocumentsByCompany(
+                companyId, page, size, search, type, sortBy, sortOrder);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")

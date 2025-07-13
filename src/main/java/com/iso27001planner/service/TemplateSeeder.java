@@ -62,22 +62,18 @@ public class TemplateSeeder {
                         }
 
                         String fileName = file.getFileName().toString();
-                        String isoClause = fileName.split("_")[0];
                         String title = fileName.substring(fileName.indexOf("_") + 1).replaceAll("\\.(docx|doc|pdf|txt|csv|xlsx)$", "");
 
-                        String content = parseFileContent(file);
 
                         DocumentTemplate saved = templateRepository.save(DocumentTemplate.builder()
                                 .title(title)
                                 .type("policy")
-                                .isoClause(isoClause)
-                                .description("Auto-seeded template for clause " + isoClause)
+                                .description("Auto-seeded template for clause ")
                                 .fileName(fileName)
                                 .filePath(file.toString())
                                 .fileType(Files.probeContentType(file))
                                 .fileSize(Files.size(file))
                                 .fileHash(hash)
-                                .content(content)
                                 .build());
 
                         log.info(" Seeded template: [{}] {}", saved.getIsoClause(), saved.getTitle());

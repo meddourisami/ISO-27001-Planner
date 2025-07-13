@@ -1,7 +1,11 @@
 package com.iso27001planner.service;
 
 import com.iso27001planner.entity.AuditLog;
+import com.iso27001planner.entity.AuditPlan;
+import com.iso27001planner.entity.NonConformity;
 import com.iso27001planner.repository.AuditEventRepository;
+import com.iso27001planner.repository.AuditPlanRepository;
+import com.iso27001planner.repository.NonConformityRepository;
 import com.lowagie.text.*;
 import com.lowagie.text.Image;
 import com.lowagie.text.pdf.PdfPCell;
@@ -19,16 +23,19 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
 public class AuditExportService {
 
-    private final AuditEventRepository repository;
+    private final AuditEventRepository auditLogRepo;
+    private final AuditPlanRepository auditPlanRepo;
+    private final NonConformityRepository nonConformityRepo;
 
     public void exportCsv(OutputStream out) throws IOException {
-        List<AuditLog> logs = repository.findAll();
+        List<AuditLog> logs = auditLogRepo.findAll();
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
         CSVPrinter printer = new CSVPrinter(writer, CSVFormat.DEFAULT.withHeader(
                 "Timestamp", "User", "Action", "Entity Type", "Entity ID", "Description", "IP"
@@ -43,7 +50,7 @@ public class AuditExportService {
     }
 
     public void exportPdf(OutputStream out) throws Exception {
-        List<AuditLog> logs = repository.findAll();
+        List<AuditLog> logs = auditLogRepo.findAll();
         Document doc = new Document(PageSize.A4);
         PdfWriter.getInstance(doc, out);
         doc.open();
@@ -62,7 +69,7 @@ public class AuditExportService {
     }
 
     public void exportPdfTable(OutputStream out) throws Exception {
-        List<AuditLog> logs = repository.findAll();
+        List<AuditLog> logs = auditLogRepo.findAll();
         Document doc = new Document(PageSize.A4.rotate());
         PdfWriter.getInstance(doc, out);
         doc.open();
@@ -112,8 +119,87 @@ public class AuditExportService {
         doc.add(title);
     }
 
-    private void addFooter(Document doc) throws DocumentException {
+    public void writeAuditPdfWithSections(List<String> sections, OutputStream out) throws Exception {
+        Document doc = new Document(PageSize.A4);
+        PdfWriter.getInstance(doc, out);
+        doc.open();
+
+        addHeader(doc);
+
+        if (sections.contains("summary")) addAuditSummary(doc);
+        if (sections.contains("findings")) addAuditFindings(doc);
+        if (sections.contains("nonconformities")) addNonConformities(doc);
+        if (sections.contains("audit logs")) addAuditLogs(doc);
+        if (sections.contains("followup")) addFollowUpActions(doc);
+
+        addFooter(doc);
+        doc.close();
+    }
+
+    private void addHeader(Document doc) throws Exception {
+        try {
+            Image logo = Image.getInstance(
+                    Objects.requireNonNull(getClass().getClassLoader().getResource("static/LOGO.png"))
+            );
+            logo.scaleToFit(90, 90);
+            logo.setAlignment(Element.ALIGN_CENTER);
+            doc.add(logo);
+        } catch (Exception e) {
+            System.err.println("⚠️ Logo not found.");
+        }
+
+        Paragraph title = new Paragraph("ISO 27001 – Audit Report", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18));
+        title.setAlignment(Element.ALIGN_CENTER);
+        doc.add(title);
         doc.add(Chunk.NEWLINE);
+    }
+
+    private void addAuditSummary(Document doc) throws DocumentException {
+        List<AuditPlan> plans = auditPlanRepo.findAll(); // or filter by company
+        doc.add(new Paragraph("🔍 Audit Summary", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+        for (AuditPlan plan : plans) {
+            doc.add(new Paragraph("• " + plan.getTitle() + " (" + plan.getStatus() + ") – " + plan.getStartDate() + " to " + plan.getEndDate()));
+        }
+        doc.add(Chunk.NEWLINE);
+    }
+
+    private void addAuditFindings(Document doc) throws DocumentException {
+        List<AuditPlan> plans = auditPlanRepo.findAll();
+        doc.add(new Paragraph("📝 Findings", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+        for (AuditPlan plan : plans) {
+            doc.add(new Paragraph("• " + plan.getTitle() + ": " + plan.getFindings()));
+        }
+        doc.add(Chunk.NEWLINE);
+    }
+
+    private void addNonConformities(Document doc) throws DocumentException {
+        List<NonConformity> nonConformities = nonConformityRepo.findAll();
+        doc.add(new Paragraph("⚠️ Non-Conformities", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+        for (NonConformity nc : nonConformities) {
+            doc.add(new Paragraph("• " + nc.getTitle() + " [" + nc.getSeverity() + "] - " + nc.getStatus()));
+        }
+        doc.add(Chunk.NEWLINE);
+    }
+
+    private void addAuditLogs(Document doc) throws DocumentException {
+        List<AuditLog> logs = auditLogRepo.findTop50ByOrderByTimestampDesc();
+        doc.add(new Paragraph("📜 Audit Logs", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+        for (AuditLog log : logs) {
+            doc.add(new Paragraph(log.getTimestamp() + " – " + log.getActorEmail() + " → " + log.getActionType()));
+        }
+        doc.add(Chunk.NEWLINE);
+    }
+
+    private void addFollowUpActions(Document doc) throws DocumentException {
+        List<AuditPlan> plans = auditPlanRepo.findAll();
+        doc.add(new Paragraph("📌 Follow-Up Actions", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+        for (AuditPlan plan : plans) {
+            doc.add(new Paragraph("• Recommendations: " + plan.getRecommendations()));
+        }
+        doc.add(Chunk.NEWLINE);
+    }
+
+    private void addFooter(Document doc) throws DocumentException {
         Paragraph footer = new Paragraph("Generated by Protected Consulting ISO 27001 Planner – " + LocalDateTime.now(),
                 FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 10, Color.GRAY));
         footer.setAlignment(Element.ALIGN_CENTER);

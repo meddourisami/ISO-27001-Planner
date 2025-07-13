@@ -15,6 +15,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -25,7 +27,7 @@ public class AdminController {
     private final UserManagementService userManagementService;
 
     @PostMapping("/create-isms-admin")
-    public ResponseEntity<String> createIsmsAdmin(@RequestBody AdminUserCreationRequest request) {
+    public ResponseEntity<String> createIsmsAdmin(@RequestBody AdminUserCreationRequest request) throws IOException {
         companyService.createCompanyWithAdmin(request);
         return ResponseEntity.status(HttpStatus.CREATED).body("ISMS Admin and Company created successfully.");
     }

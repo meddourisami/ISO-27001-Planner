@@ -19,6 +19,10 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -60,11 +64,27 @@ public class DocumentService {
                 .toList();
     }
 
-    public List<DocumentDTO> getDocumentsByCompany(Long companyId) {
-        return documentRepository.findByCompanyId(companyId)
-                .stream()
-                .map(mapper::toDTO)
-                .toList();
+//    public List<DocumentDTO> getDocumentsByCompany(Long companyId) {
+//        return documentRepository.findByCompanyId(companyId)
+//                .stream()
+//                .map(mapper::toDTO)
+//                .toList();
+//    }
+
+    public Page<DocumentDTO> getDocumentsByCompany(
+            Long companyId,
+            int page,
+            int size,
+            String search,
+            String type,
+            String sortBy,
+            String sortOrder
+    ) {
+        Sort sort = sortOrder.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return documentRepository.searchDocuments(companyId, search, type, pageable)
+                .map(mapper::toDTO);
     }
 
     public DocumentDTO getById(Long id) {

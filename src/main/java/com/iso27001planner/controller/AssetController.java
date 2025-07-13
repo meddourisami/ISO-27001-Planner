@@ -10,6 +10,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -67,11 +68,25 @@ public class AssetController {
         assetExportService.exportPdf(companyId, response.getOutputStream());
     }
 
+//    @GetMapping("/export/pdf-table/{companyId}")
+//    @PreAuthorize("hasAuthority('ISMS_ADMIN')")
+//    public void exportPdfTable(@PathVariable Long companyId, HttpServletResponse response) throws Exception {
+//        response.setContentType("application/pdf");
+//        response.setHeader("Content-Disposition", "attachment; filename=asset-inventory.pdf");
+//        assetExportService.exportPdfTable(companyId, response.getOutputStream());
+//    }
+
     @GetMapping("/export/pdf-table/{companyId}")
     @PreAuthorize("hasAuthority('ISMS_ADMIN')")
-    public void exportPdfTable(@PathVariable Long companyId, HttpServletResponse response) throws Exception {
+    public void exportPdfTable(
+            @PathVariable Long companyId,
+            @RequestParam List<String> sections,
+            HttpServletResponse response
+    ) throws Exception {
         response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "attachment; filename=asset-inventory.pdf");
-        assetExportService.exportPdfTable(companyId, response.getOutputStream());
+        String filename = "asset-inventory_" + LocalDate.now() + ".pdf";
+        response.setHeader("Content-Disposition", "attachment; filename=" + filename);
+
+        assetExportService.exportCustomPdf(companyId, sections, response.getOutputStream());
     }
 }

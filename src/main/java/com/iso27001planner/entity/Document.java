@@ -37,6 +37,7 @@ public class Document {
     private boolean deleted = false;
 
     private String content; // Text content (optional) if stored in DB
+    private String relatedControls;
 
     private String fileName; // Original name
     private String filePath; // Stored path or key
@@ -47,6 +48,6 @@ public class Document {
     @JoinColumn(name = "company_id")
     private Company company;
 
-    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<DocumentVersion> versions = new ArrayList<>();
 }
