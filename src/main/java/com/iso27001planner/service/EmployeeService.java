@@ -5,13 +5,16 @@ import com.iso27001planner.entity.Company;
 import com.iso27001planner.entity.Employee;
 import com.iso27001planner.entity.Training;
 import com.iso27001planner.entity.TrainingRecord;
+import com.iso27001planner.event.AuditEvent;
 import com.iso27001planner.exception.BusinessException;
 import com.iso27001planner.repository.EmployeeRepository;
 import com.iso27001planner.repository.TrainingRecordRepository;
 import com.iso27001planner.repository.TrainingRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -26,6 +29,7 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final TrainingRepository trainingRepository;
     private final TrainingRecordRepository trainingRecordRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public EmployeeDTO register(EmployeeDTO dto, Long companyId) {
         Employee employee = Employee.builder()
@@ -34,6 +38,15 @@ public class EmployeeService {
                 .department(dto.getDepartment())
                 .company(Company.builder().id(companyId).build())
                 .build();
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "New Employee added",
+                 getCurrentUserEmail(),
+                "Employee",
+                 employee.getId().toString(),
+                "New employee added : " + employee.getName()
+        ));
 
         return toDTO(employeeRepository.save(employee));
     }
@@ -52,6 +65,15 @@ public class EmployeeService {
                 .build();
 
         trainingRecordRepository.save(record);
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "Training completed",
+                 getCurrentUserEmail(),
+                "Employee",
+                 trainingId.toString(),
+                "Employee completed training : " + employeeId.toString()
+        ));
     }
 
     public List<EmployeeDTO> listByCompany(Long companyId) {
@@ -70,6 +92,15 @@ public class EmployeeService {
         employee.setEmail(dto.getEmail());
 
         employeeRepository.save(employee);
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "EMPLOYEE INFO UPDATED",
+                getCurrentUserEmail(),
+                "Employee",
+                employee.getId().toString(),
+                "Employee : " + employee.getName() + " info updated"
+        ));
     }
 
     @Transactional
@@ -77,6 +108,14 @@ public class EmployeeService {
         if (!employeeRepository.existsById(id)) {
             throw new BusinessException("Employee not found", HttpStatus.NOT_FOUND);
         }
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "EMPLOYEE-DELETED",
+                 getCurrentUserEmail(),
+                "Employee",
+                 id.toString(),
+                "Employee deleted" + id.toString()
+        ));
         employeeRepository.deleteById(id);
     }
 
@@ -95,4 +134,9 @@ public class EmployeeService {
                 completed
         );
     }
+
+    private String getCurrentUserEmail() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+
 }

@@ -43,6 +43,15 @@ public class TaskService {
                 .risk(dto.getRiskId() != null ? riskRepository.findById(UUID.fromString(String.valueOf(dto.getRiskId()))).orElse(null) : null)
                 .build();
 
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "TASK CREATED",
+                getCurrentUserEmail(),
+                "Task",
+                 task.getId().toString(),
+                "Task " + task.getTitle() +" added"
+        ));
+
         return toDTO(taskRepository.save(task));
     }
 
@@ -103,7 +112,7 @@ public class TaskService {
                 getCurrentUserEmail(),
                 "Task",
                 id.toString(),
-                "Task updated"
+                "Task updated " + task.getTitle()
         ));
 
         taskRepository.save(task);

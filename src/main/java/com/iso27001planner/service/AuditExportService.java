@@ -3,6 +3,7 @@ package com.iso27001planner.service;
 import com.iso27001planner.entity.AuditLog;
 import com.iso27001planner.entity.AuditPlan;
 import com.iso27001planner.entity.NonConformity;
+import com.iso27001planner.event.AuditEvent;
 import com.iso27001planner.repository.AuditEventRepository;
 import com.iso27001planner.repository.AuditPlanRepository;
 import com.iso27001planner.repository.NonConformityRepository;
@@ -14,6 +15,9 @@ import com.lowagie.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.awt.*;
@@ -33,6 +37,7 @@ public class AuditExportService {
     private final AuditEventRepository auditLogRepo;
     private final AuditPlanRepository auditPlanRepo;
     private final NonConformityRepository nonConformityRepo;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void exportCsv(OutputStream out) throws IOException {
         List<AuditLog> logs = auditLogRepo.findAll();
@@ -134,6 +139,15 @@ public class AuditExportService {
 
         addFooter(doc);
         doc.close();
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "Audit Report generated ",
+                 getCurrentUserEmail(),
+                "Report",
+                 "Audit report",
+                "Audit Report generated "
+        ));
     }
 
     private void addHeader(Document doc) throws Exception {
@@ -204,5 +218,10 @@ public class AuditExportService {
                 FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 10, Color.GRAY));
         footer.setAlignment(Element.ALIGN_CENTER);
         doc.add(footer);
+    }
+
+    private String getCurrentUserEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return (auth != null && auth.isAuthenticated()) ? auth.getName() : "anonymous";
     }
 }

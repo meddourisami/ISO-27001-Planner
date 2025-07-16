@@ -36,14 +36,6 @@ public class RiskService {
     public RiskDTO getRiskById(String id) {
         Risk risk = riskRepository.findById(UUID.fromString(id))
                 .orElseThrow(() -> new BusinessException("Risk not found", HttpStatus.NOT_FOUND));
-        eventPublisher.publishEvent(new AuditEvent(
-                this,
-                "VIEW_RISK",
-                getCurrentUserEmail(),
-                "Risk",
-                risk.getId(),
-                "Viewed risk details"
-        ));
         return riskMapper.toDTO(risk);
     }
 
@@ -69,24 +61,16 @@ public class RiskService {
         eventPublisher.publishEvent(new AuditEvent(
                 this,
                 "CREATE_RISK",
-                getCurrentUserEmail(),
+                 getCurrentUserEmail(),
                 "Risk",
-                saved.getId(),
-                "Created risk: " + saved.getTitle()
+                 saved.getId(),
+                "New risk added: " + saved.getTitle()
         ));
 
         return riskMapper.toDTO(saved);
     }
 
     public List<RiskDTO> listCompanyRisks(Long companyId) {
-        eventPublisher.publishEvent(new AuditEvent(
-                this,
-                "LIST_RISKS",
-                 getCurrentUserEmail(),
-                "Risk",
-                "-",
-                "Listed risks for company: " + companyId
-        ));
         return riskRepository.findByCompany_Id(companyId).stream()
                 .map(riskMapper::toDTO)
                 .toList();
@@ -103,7 +87,7 @@ public class RiskService {
                 "DELETE_RISK",
                  getCurrentUserEmail(),
                 "Risk",
-                risk.getId(),
+                 risk.getId(),
                 "Deleted risk: " + risk.getTitle()
         ));
     }

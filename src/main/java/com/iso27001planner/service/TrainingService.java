@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -47,6 +48,15 @@ public class TrainingService {
                 .company(company)
                 .build();
 
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "NEW TRAINING ADDED",
+                getCurrentUserEmail(),
+                "Training",
+                 training.getId().toString(),
+                "New training added" + training.getTitle()
+        ));
+
         return toDTO(trainingRepository.save(training));
     }
 
@@ -72,6 +82,15 @@ public class TrainingService {
         training.setMaterials(dto.getMaterials());
 
         trainingRepository.save(training);
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "TRAINING UPDATED",
+                getCurrentUserEmail(),
+                "Training",
+                training.getId().toString(),
+                training.getTitle() +" Training Info updated "
+        ));
     }
 
     @Transactional
@@ -79,7 +98,17 @@ public class TrainingService {
         if (!trainingRepository.existsById(id)) {
             throw new BusinessException("Training not found", HttpStatus.NOT_FOUND);
         }
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "TRAINING DELETED",
+                 getCurrentUserEmail(),
+                "Training",
+                 id.toString(),
+                "Training deleted" + id.toString()
+        ));
         trainingRepository.deleteById(id);
+
     }
 
     @Transactional
@@ -111,7 +140,7 @@ public class TrainingService {
 
         eventPublisher.publishEvent(new AuditEvent(
                 this,
-                "ASSIGN_TRAINING",
+                "EMPLOYEE ASSIGNED TO TRAINING",
                 employee.getEmail(),
                 "Training",
                 training.getId().toString(),
@@ -133,5 +162,9 @@ public class TrainingService {
                 training.getMaterials(),
                 training.getRequiredFor()
         );
+    }
+
+    private String getCurrentUserEmail() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 }

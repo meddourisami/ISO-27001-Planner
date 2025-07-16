@@ -106,9 +106,9 @@ public class MFAService {
         eventPublisher.publishEvent(new AuditEvent(
                 this,
                 "ENABLE_MFA",
-                email,
+                 email,
                 "User",
-                user.getId().toString(),
+                 user.getId().toString(),
                 "MFA enabled by user"
         ));
         return "Email MFA enabled successfully.";
@@ -172,9 +172,9 @@ public class MFAService {
         eventPublisher.publishEvent(new AuditEvent(
                 this,
                 "DISABLE_MFA",
-                email,
+                 email,
                 "User",
-                user.getId().toString(),
+                 user.getId().toString(),
                 "MFA disabled by user"
         ));
         return "Email MFA disabled successfully.";

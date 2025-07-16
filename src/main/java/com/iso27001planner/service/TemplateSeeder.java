@@ -76,6 +76,7 @@ public class TemplateSeeder {
                                 .fileHash(hash)
                                 .build());
 
+
                         log.info(" Seeded template: [{}] {}", saved.getIsoClause(), saved.getTitle());
 
                     } catch (Exception ex) {

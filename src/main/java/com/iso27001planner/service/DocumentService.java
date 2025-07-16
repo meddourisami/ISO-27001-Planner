@@ -98,7 +98,15 @@ public class DocumentService {
         Document doc = documentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Document not found", HttpStatus.NOT_FOUND));
 
-        doc.setDeleted(true); // ✅ Soft delete
+        doc.setDeleted(true); //  Soft delete
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "Document deleted",
+                getCurrentUserEmail(),
+                "Document",
+                id.toString(),
+                "Document deleted : " + id.toString()
+        ));
         documentRepository.save(doc);
     }
 
@@ -124,6 +132,15 @@ public class DocumentService {
         Document saved = documentRepository.save(doc);
         saveVersion(saved, file, "1.0");
 
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "New draft Document added",
+                getCurrentUserEmail(),
+                "Document",
+                doc.getId().toString(),
+                "New employee added : " + doc.getTitle()
+        ));
+
         return toDTO(saved);
     }
 
@@ -135,10 +152,10 @@ public class DocumentService {
         String currentVersion = doc.getVersion();
         String oldStatus = doc.getStatus();
 
-        // Always set status back to draft if being updated
+        // Always set status back to review if being updated
         String newStatus = "Review";
         doc.setStatus(newStatus);
-        doc.setReviewDate(LocalDate.now().plusMonths(12));
+        doc.setReviewDate(LocalDate.now().plusMonths(1));
 
         // Auto-increment version based on status change
         String nextVersion = calculateNextVersion(currentVersion, oldStatus, newStatus);
@@ -147,6 +164,15 @@ public class DocumentService {
         documentRepository.save(doc);
 
         saveVersion(doc, file, nextVersion);
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "New Document Version uploaded",
+                getCurrentUserEmail(),
+                "Document",
+                doc.getId().toString(),
+                "New document version uploaded : " + doc.getTitle()
+        ));
     }
 
     @Transactional
@@ -181,6 +207,15 @@ public class DocumentService {
         } else {
             usePreviousFileAsNewVersion(doc, nextVersion); // Reuse last version's file
         }
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "Document updated",
+                getCurrentUserEmail(),
+                "Document",
+                doc.getId().toString(),
+                "New document version uploaded : " + doc.getTitle()
+        ));
     }
 
     @Transactional

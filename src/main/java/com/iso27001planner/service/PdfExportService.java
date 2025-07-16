@@ -1,6 +1,7 @@
 package com.iso27001planner.service;
 
 import com.iso27001planner.entity.Risk;
+import com.iso27001planner.event.AuditEvent;
 import com.iso27001planner.repository.RiskRepository;
 import com.lowagie.text.*;
 import com.lowagie.text.Font;
@@ -9,6 +10,8 @@ import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.awt.*;
@@ -24,6 +27,7 @@ import java.util.stream.Stream;
 public class PdfExportService {
 
     private final RiskRepository riskRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void writeRisksToPdf(Long companyId, OutputStream outputStream) throws Exception {
         List<Risk> risks = riskRepository.findByCompany_Id(companyId);
@@ -140,6 +144,15 @@ public class PdfExportService {
         footer.setAlignment(Element.ALIGN_CENTER);
         doc.add(footer);
         doc.close();
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "Report generated",
+                "system",
+                "Report",
+                "Risk report",
+                "New risk report generated"
+        ));
     }
 
     private void addRiskSummary(Document doc, List<Risk> risks) throws DocumentException {
@@ -274,5 +287,9 @@ public class PdfExportService {
     private String capitalize(String s) {
         if (s == null || s.isEmpty()) return "-";
         return s.substring(0, 1).toUpperCase() + s.substring(1).toLowerCase();
+    }
+
+    private String getCurrentUserEmail() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 }

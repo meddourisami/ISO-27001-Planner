@@ -1,12 +1,17 @@
 package com.iso27001planner.controller;
 
 import com.iso27001planner.entity.AuditLog;
+import com.iso27001planner.entity.User;
+import com.iso27001planner.exception.BusinessException;
 import com.iso27001planner.repository.AuditEventRepository;
+import com.iso27001planner.repository.UserRepository;
 import com.iso27001planner.service.AuditExportService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
@@ -22,9 +27,10 @@ public class AuditLogController {
 
     private final AuditEventRepository repository;
     private final AuditExportService auditExportService;
+    private final UserRepository userRepository;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('SUPER_ADMIN', 'ISMS_ADMIN')")
     public ResponseEntity<List<AuditLog>> getAll(
             @RequestParam Optional<String> user,
             @RequestParam Optional<String> action,
@@ -32,18 +38,28 @@ public class AuditLogController {
             @RequestParam Optional<LocalDate> from,
             @RequestParam Optional<LocalDate> to
     ) {
+        String requesterEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        User requester = userRepository.findByEmail(requesterEmail)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.UNAUTHORIZED));
+
+        Long companyId = requester.getCompany().getId();
+
         List<AuditLog> logs = repository.findAll();
 
-        return ResponseEntity.ok(
-                logs.stream()
-                        .filter(log -> user.map(u -> log.getActorEmail().equalsIgnoreCase(u)).orElse(true))
-                        .filter(log -> action.map(a -> log.getActionType().equalsIgnoreCase(a)).orElse(true))
-                        .filter(log -> entity.map(e -> log.getEntityType().equalsIgnoreCase(e)).orElse(true))
-                        .filter(log -> from.map(start -> !log.getTimestamp().toLocalDate().isBefore(start)).orElse(true))
-                        .filter(log -> to.map(end -> !log.getTimestamp().toLocalDate().isAfter(end)).orElse(true))
-                        .sorted(Comparator.comparing(AuditLog::getTimestamp).reversed())
-                        .toList()
-        );
+        List<AuditLog> filtered = logs.stream()
+                .filter(log -> {
+                    // Ensure log relates to this company
+                    return isLogRelatedToCompany(log, companyId);
+                })
+                .filter(log -> user.map(u -> log.getActorEmail().equalsIgnoreCase(u)).orElse(true))
+                .filter(log -> action.map(a -> log.getActionType().equalsIgnoreCase(a)).orElse(true))
+                .filter(log -> entity.map(e -> log.getEntityType().equalsIgnoreCase(e)).orElse(true))
+                .filter(log -> from.map(start -> !log.getTimestamp().toLocalDate().isBefore(start)).orElse(true))
+                .filter(log -> to.map(end -> !log.getTimestamp().toLocalDate().isAfter(end)).orElse(true))
+                .sorted(Comparator.comparing(AuditLog::getTimestamp).reversed())
+                .toList();
+
+        return ResponseEntity.ok(filtered);
     }
 
     @GetMapping("/export/csv")
@@ -80,5 +96,12 @@ public class AuditLogController {
         response.setContentType("application/pdf");
         response.setHeader("Content-Disposition", "attachment; filename=audit-report.pdf");
         auditExportService.writeAuditPdfWithSections(sections, response.getOutputStream());
+    }
+
+    private boolean isLogRelatedToCompany(AuditLog log, Long companyId) {
+        // If the log's actor belongs to the company, include it.
+        return userRepository.findByEmail(log.getActorEmail())
+                .map(user -> user.getCompany().getId().equals(companyId))
+                .orElse(false);
     }
 }

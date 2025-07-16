@@ -200,6 +200,15 @@ public class AssetExportService {
 
         addFooter(doc);
         doc.close();
+
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "Asset Report generated ",
+                 getCurrentUserEmail(),
+                "Report",
+                "Asset report",
+                "Asset Report generated "
+        ));
     }
 
     private void addAssetSummary(Document doc, List<Asset> assets) throws DocumentException {

@@ -67,6 +67,15 @@ public class NonConformityService {
         nc.setRelatedControls(controls);
         nc.setRelatedRisks(risks);
 
+        eventPublisher.publishEvent(new AuditEvent(
+                this,
+                "CREATE_NONCONFORMITY",
+                getCurrentUserEmail(),
+                "NonConformity",
+                nc.getId().toString(),
+                "Added non-conformity: " + nc.getTitle()
+        ));
+
         return toDTO(repository.save(nc));
     }
 

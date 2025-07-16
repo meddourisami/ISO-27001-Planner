@@ -238,15 +238,6 @@ public class UserManagementService {
             users = userRepository.findByCompany(admin.getCompany(), pageable);
         }
 
-        eventPublisher.publishEvent(new AuditEvent(
-                this,
-                "LIST_USERS",
-                adminEmail,
-                "User",
-                "-",
-                "Listed company users (filter=" + (roleFilter != null ? roleFilter : "none") + ")"
-        ));
-
         return users.map(this::mapToDto);
     }
 
