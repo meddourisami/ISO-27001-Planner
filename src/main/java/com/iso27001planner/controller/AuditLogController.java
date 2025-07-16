@@ -50,7 +50,7 @@ public class AuditLogController {
 
             Long companyId = requester.getCompany().getId();
 
-            List<AuditLog> logs = repository.findAll();
+            List<AuditLog> logs = repository.findTop100ByOrderByTimestampDesc();
 
             List<AuditLog> filtered = logs.stream()
                     .filter(log -> {

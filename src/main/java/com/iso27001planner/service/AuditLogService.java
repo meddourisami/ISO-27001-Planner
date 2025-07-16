@@ -29,7 +29,7 @@ public class AuditLogService {
 
         Long companyId = user.getCompany().getId();
 
-        return auditLogRepo.findTop50ByOrderByTimestampDesc().stream()
+        return auditLogRepo.findTop100ByOrderByTimestampDesc().stream()
                 .filter(log -> isLogRelatedToCompany(log, companyId))
                 .limit(limit)
                 .toList();

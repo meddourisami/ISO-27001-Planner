@@ -10,6 +10,6 @@ import java.util.List;
 public interface AuditEventRepository extends JpaRepository<AuditLog, Long> {
     List<AuditLog> findByActorEmail(String email);
 
-    List<AuditLog> findTop50ByOrderByTimestampDesc();
+    List<AuditLog> findTop100ByOrderByTimestampDesc();
 
 }

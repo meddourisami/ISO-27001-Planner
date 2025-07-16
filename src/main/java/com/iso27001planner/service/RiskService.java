@@ -9,6 +9,7 @@ import com.iso27001planner.repository.AssetRepository;
 import com.iso27001planner.repository.CompanyRepository;
 import com.iso27001planner.repository.RiskRepository;
 import com.iso27001planner.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
@@ -77,7 +78,7 @@ public class RiskService {
     }
 
     public void deleteRisk(String id) {
-        Risk risk = riskRepository.findById(UUID.fromString(id))
+        Risk risk = riskRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Risk not found", HttpStatus.NOT_FOUND));
 
         riskRepository.deleteById(UUID.fromString(id));
@@ -92,32 +93,68 @@ public class RiskService {
         ));
     }
 
+    @Transactional
     public RiskDTO updateRisk(String id, RiskDTO dto) {
-        Risk risk = riskRepository.findById(UUID.fromString(id))
-                .orElseThrow(() -> new BusinessException("Risk not found", HttpStatus.NOT_FOUND));
-        risk.setTitle(dto.getTitle());
-        risk.setDescription(dto.getDescription());
-        risk.setThreat(dto.getThreat());
-        risk.setVulnerability(dto.getVulnerability());
-        risk.setLikelihood(dto.getLikelihood());
-        risk.setImpact(dto.getImpact());
-        risk.setSeverity(calculateSeverity(dto.getLikelihood(), dto.getImpact()));
-        risk.setStatus(dto.getStatus());
-        risk.setTreatment(dto.getTreatment());
-        risk.setControls(dto.getControls());
-        risk.setDueDate(dto.getDueDate());
-        Risk updated = riskRepository.save(risk);
+        try {
+            System.out.println("🔁 Attempting to update risk with ID: " + id);
+            System.out.println("📥 Incoming DTO: " + dto);
 
-        eventPublisher.publishEvent(new AuditEvent(
-                this,
-                "UPDATE_RISK",
-                 getCurrentUserEmail(),
-                "Risk",
-                 updated.getId(),
-                "Updated risk: " + updated.getTitle()
-        ));
+            Risk risk = riskRepository.findById(id)
+                    .orElseThrow(() -> new BusinessException("Risk not found", HttpStatus.NOT_FOUND));
 
-        return riskMapper.toDTO(updated);
+            Asset asset = null;
+            if (dto.getAssetId() != null && !dto.getAssetId().isBlank()) {
+                asset = assetRepository.findById(dto.getAssetId())
+                        .orElseThrow(() -> new BusinessException("Asset not found", HttpStatus.NOT_FOUND));
+            }
+
+            // Logging each update for clarity
+            System.out.println("🔧 Updating Risk fields...");
+            risk.setTitle(dto.getTitle());
+            risk.setDescription(dto.getDescription());
+            risk.setAsset(asset);
+            risk.setThreat(dto.getThreat());
+            risk.setVulnerability(dto.getVulnerability());
+            risk.setLikelihood(dto.getLikelihood());
+            risk.setImpact(dto.getImpact());
+
+            String severity = calculateSeverity(dto.getLikelihood(), dto.getImpact());
+            System.out.println("📊 Calculated Severity: " + severity);
+            risk.setSeverity(severity);
+
+            risk.setStatus(dto.getStatus());
+            risk.setTreatment(dto.getTreatment());
+            risk.setControls(dto.getControls());
+
+            if (dto.getDueDate() != null && !dto.getDueDate().isBlank()) {
+                risk.setDueDate(dto.getDueDate()); // assuming it's already in String form
+            }
+
+            Risk updated = riskRepository.save(risk);
+            System.out.println("✅ Risk updated successfully: " + updated.getId());
+
+            // Audit Logging
+            eventPublisher.publishEvent(new AuditEvent(
+                    this,
+                    "UPDATE_RISK",
+                    getCurrentUserEmail(),
+                    "Risk",
+                    updated.getId(),
+                    "Updated risk: " + updated.getTitle()
+            ));
+
+            return riskMapper.toDTO(updated);
+
+        } catch (IllegalArgumentException e) {
+            System.err.println("❌ Invalid UUID: " + id);
+            throw new BusinessException("Invalid risk ID format", HttpStatus.BAD_REQUEST);
+        } catch (BusinessException be) {
+            System.err.println("❌ Business error: " + be.getMessage());
+            throw be;
+        } catch (Exception e) {
+            e.printStackTrace(); // Always log full error
+            throw new BusinessException("Failed to update risk: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     private String calculateSeverity(String likelihood, String impact) {
