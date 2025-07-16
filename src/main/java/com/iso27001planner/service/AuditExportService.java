@@ -8,6 +8,7 @@ import com.iso27001planner.repository.AuditEventRepository;
 import com.iso27001planner.repository.AuditPlanRepository;
 import com.iso27001planner.repository.NonConformityRepository;
 import com.lowagie.text.*;
+import com.lowagie.text.Font;
 import com.lowagie.text.Image;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
@@ -38,6 +39,7 @@ public class AuditExportService {
     private final AuditPlanRepository auditPlanRepo;
     private final NonConformityRepository nonConformityRepo;
     private final ApplicationEventPublisher eventPublisher;
+    private final AuditLogService auditLogService;
 
     public void exportCsv(OutputStream out) throws IOException {
         List<AuditLog> logs = auditLogRepo.findAll();
@@ -196,11 +198,22 @@ public class AuditExportService {
     }
 
     private void addAuditLogs(Document doc) throws DocumentException {
-        List<AuditLog> logs = auditLogRepo.findTop50ByOrderByTimestampDesc();
+        List<AuditLog> logs = auditLogService.getRecentCompanyLogs(50);
+
         doc.add(new Paragraph("📜 Audit Logs", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14)));
+        doc.add(Chunk.NEWLINE);
+
+        Font logFont = FontFactory.getFont(FontFactory.HELVETICA, 11);
         for (AuditLog log : logs) {
-            doc.add(new Paragraph(log.getTimestamp() + " – " + log.getActorEmail() + " → " + log.getActionType()));
+            String logEntry = String.format("%s — %s → %s (%s)",
+                    log.getTimestamp(),
+                    log.getActorEmail(),
+                    log.getActionType(),
+                    log.getEntityType() != null ? log.getEntityType() : "-"
+            );
+            doc.add(new Paragraph(logEntry, logFont));
         }
+
         doc.add(Chunk.NEWLINE);
     }
 

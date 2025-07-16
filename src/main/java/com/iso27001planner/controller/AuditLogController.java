@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -31,35 +32,51 @@ public class AuditLogController {
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('SUPER_ADMIN', 'ISMS_ADMIN')")
-    public ResponseEntity<List<AuditLog>> getAll(
+    public ResponseEntity<?> getAll(
             @RequestParam Optional<String> user,
             @RequestParam Optional<String> action,
             @RequestParam Optional<String> entity,
             @RequestParam Optional<LocalDate> from,
             @RequestParam Optional<LocalDate> to
     ) {
-        String requesterEmail = SecurityContextHolder.getContext().getAuthentication().getName();
-        User requester = userRepository.findByEmail(requesterEmail)
-                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.UNAUTHORIZED));
+        try {
+            String requesterEmail = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        Long companyId = requester.getCompany().getId();
+            User requester = userRepository.findByEmail(requesterEmail)
+                    .orElseThrow(() -> new BusinessException("User not found", HttpStatus.UNAUTHORIZED));
 
-        List<AuditLog> logs = repository.findAll();
+            String requesterRole = requester.getRole().name();
+            boolean isSuperAdmin = "SUPER_ADMIN".equals(requesterRole);
 
-        List<AuditLog> filtered = logs.stream()
-                .filter(log -> {
-                    // Ensure log relates to this company
-                    return isLogRelatedToCompany(log, companyId);
-                })
-                .filter(log -> user.map(u -> log.getActorEmail().equalsIgnoreCase(u)).orElse(true))
-                .filter(log -> action.map(a -> log.getActionType().equalsIgnoreCase(a)).orElse(true))
-                .filter(log -> entity.map(e -> log.getEntityType().equalsIgnoreCase(e)).orElse(true))
-                .filter(log -> from.map(start -> !log.getTimestamp().toLocalDate().isBefore(start)).orElse(true))
-                .filter(log -> to.map(end -> !log.getTimestamp().toLocalDate().isAfter(end)).orElse(true))
-                .sorted(Comparator.comparing(AuditLog::getTimestamp).reversed())
-                .toList();
+            Long companyId = requester.getCompany().getId();
 
-        return ResponseEntity.ok(filtered);
+            List<AuditLog> logs = repository.findAll();
+
+            List<AuditLog> filtered = logs.stream()
+                    .filter(log -> {
+                        try {
+                            return isSuperAdmin || isLogRelatedToCompany(log, companyId);
+                        } catch (Exception e) {
+                            System.err.println("❌ Failed to check company for log " + log.getId() + ": " + e.getMessage());
+                            return false;
+                        }
+                    })
+                    .filter(log -> user.map(u -> log.getActorEmail().equalsIgnoreCase(u)).orElse(true))
+                    .filter(log -> action.map(a -> log.getActionType().equalsIgnoreCase(a)).orElse(true))
+                    .filter(log -> entity.map(e -> log.getEntityType().equalsIgnoreCase(e)).orElse(true))
+                    .filter(log -> from.map(start -> !log.getTimestamp().toLocalDate().isBefore(start)).orElse(true))
+                    .filter(log -> to.map(end -> !log.getTimestamp().toLocalDate().isAfter(end)).orElse(true))
+                    .sorted(Comparator.comparing(AuditLog::getTimestamp).reversed())
+                    .toList();
+
+            return ResponseEntity.ok(filtered);
+        } catch (DateTimeParseException ex) {
+            return ResponseEntity.badRequest().body("⛔ Invalid date format. Expected format: yyyy-MM-dd");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("⚠️ Error fetching audit logs: " + ex.getMessage());
+        }
     }
 
     @GetMapping("/export/csv")
