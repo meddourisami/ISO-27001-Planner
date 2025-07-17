@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,50 +36,69 @@ public class NonConformityService {
     private final ApplicationEventPublisher eventPublisher;
 
     public NonConformityDTO create(NonConformityDTO dto) {
-        Company company = companyRepository.findById(dto.getCompanyId())
-                .orElseThrow(() -> new BusinessException("Company not found", HttpStatus.NOT_FOUND));
+        try {
+            Company company = companyRepository.findById(dto.getCompanyId())
+                    .orElseThrow(() -> new BusinessException("Company not found", HttpStatus.NOT_FOUND));
 
-        List<Control> controls = controlRepo.findAllById(dto.getRelatedControls().stream()
-                .map(UUID::fromString).toList());
+            // Load related Controls
+            List<Control> controls = controlRepo.findAllById(dto.getRelatedControls().stream()
+                    .map(UUID::fromString)
+                    .toList());
 
-        List<Risk> risks = riskRepo.findAllById(dto.getRelatedRisks().stream()
-                .map(UUID::fromString).toList().toString());
+            // 🛠 Fix potential bug: you were converting to string inside toList()
+            List<Risk> risks = riskRepo.findAllById(dto.getRelatedRisks().stream()
+                    .toList().toString());
 
+            // Build entity
+            NonConformity nc = NonConformity.builder()
+                    .title(dto.getTitle())
+                    .description(dto.getDescription())
+                    .source(dto.getSource())
+                    .sourceReference(dto.getSourceReference())
+                    .dateIdentified(LocalDate.parse(dto.getDateIdentified()))
+                    .severity(dto.getSeverity())
+                    .status(dto.getStatus())
+                    .owner(dto.getOwner())
+                    .dueDate(LocalDate.parse(dto.getDueDate()))
+                    .correctiveActions(dto.getCorrectiveActions())
+                    .evidence(dto.getEvidence())
+                    .verificationStatus(dto.getVerificationStatus())
+                    .verificationDate(safeParseDate(dto.getVerificationDate()))
+                    .verifiedBy(dto.getVerifiedBy())
+                    .comments(dto.getComments())
+                    .company(company)
+                    .build();
 
-        NonConformity nc = NonConformity.builder()
-                .title(dto.getTitle())
-                .description(dto.getDescription())
-                .source(dto.getSource())
-                .sourceReference(dto.getSourceReference())
-                .dateIdentified(LocalDate.parse(dto.getDateIdentified()))
-                .severity(dto.getSeverity())
-                .status(dto.getStatus())
-                .owner(dto.getOwner())
-                .dueDate(LocalDate.parse(dto.getDueDate()))
-                .correctiveActions(dto.getCorrectiveActions())
-                .evidence(dto.getEvidence())
-                .verificationStatus(dto.getVerificationStatus())
-                .verificationDate(dto.getVerificationDate() != null ? LocalDate.parse(dto.getVerificationDate()) : null)
-                .verifiedBy(dto.getVerifiedBy())
-                .comments(dto.getComments())
-                .company(company)
-                .build();
+            nc.setRelatedControls(controls);
+            nc.setRelatedRisks(risks);
 
-        nc.setRelatedControls(controls);
-        nc.setRelatedRisks(risks);
+            NonConformity saved = repository.save(nc);
+            // Audit trail
+            eventPublisher.publishEvent(new AuditEvent(
+                    this,
+                    "CREATE_NONCONFORMITY",
+                    getCurrentUserEmail(),
+                    "NonConformity",
+                    saved.getId().toString(),
+                    "Added non-conformity: " + saved.getTitle()
+            ));
 
-        NonConformity saved = repository.save(nc);
+            return toDTO(saved);
 
-        eventPublisher.publishEvent(new AuditEvent(
-                this,
-                "CREATE_NONCONFORMITY",
-                 getCurrentUserEmail(),
-                "NonConformity",
-                 saved.getId().toString(),
-                "Added non-conformity: " + saved.getTitle()
-        ));
-
-        return toDTO(saved);
+        } catch (DateTimeParseException ex) {
+            System.err.println("❌ Date parsing failed: " + ex.getMessage());
+            throw new BusinessException("Invalid date format. Please use yyyy-MM-dd.", HttpStatus.BAD_REQUEST);
+        } catch (IllegalArgumentException ex) {
+            System.err.println("❌ UUID parsing failed: " + ex.getMessage());
+            throw new BusinessException("Invalid UUID format for related controls or risks.", HttpStatus.BAD_REQUEST);
+        } catch (BusinessException ex) {
+            System.err.println("❌ Business error: " + ex.getMessage());
+            throw ex;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new BusinessException("An unexpected error occurred while creating the non-conformity: " + ex.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     public List<NonConformityDTO> listByCompany(Long companyId) {
@@ -223,5 +243,12 @@ public class NonConformityService {
 
     private String getCurrentUserEmail() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+
+    private LocalDate safeParseDate(String rawDate) {
+        if (rawDate == null || rawDate.isBlank()) {
+            return null; // or LocalDate.now() if you prefer default
+        }
+        return LocalDate.parse(rawDate);
     }
 }

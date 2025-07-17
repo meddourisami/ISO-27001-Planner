@@ -20,6 +20,13 @@ public class NotificationController {
     private final NotificationRepository notificationRepository;
     private final NotificationMapper notificationMapper;
 
+    @GetMapping("/company/{companyId}")
+    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
+    public ResponseEntity<List<Notification>> getAllByCompany(@PathVariable Long companyId) {
+        List<Notification> notes = notificationRepository.findByCompany_IdOrderBySentAtDesc(companyId);
+        return ResponseEntity.ok(notes);
+    }
+
     @GetMapping("/{email}")
     @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
     public ResponseEntity<List<NotificationDTO>> getForUser(@PathVariable String email) {
@@ -49,6 +56,17 @@ public class NotificationController {
         long count = notificationRepository.findAll().stream()
                 .filter(n -> n.getSentAt().isBefore(cutoff)).count();
         return ResponseEntity.ok(count);
+    }
+
+    @PutMapping("/company/{companyId}/mark-all-read")
+    @PreAuthorize("hasAnyAuthority('ISMS_ADMIN', 'ISMS_USER')")
+    public ResponseEntity<Void> markAllAsRead(@PathVariable Long companyId) {
+        List<Notification> unreadNotifications = notificationRepository.findByCompany_IdAndReadFalse(companyId);
+        for (Notification note : unreadNotifications) {
+            note.setRead(true);
+        }
+        notificationRepository.saveAll(unreadNotifications);
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{email}/mark-all-read")

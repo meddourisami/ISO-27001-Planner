@@ -194,7 +194,7 @@ public class DocumentService {
         doc.setOwner(dto.getOwner());
         doc.setApprover(dto.getApprover());
         doc.setStatus(newStatus);
-        if (newStatus == "Review"){
+        if (Objects.equals(newStatus, "review")){
             notificationService.notifyDocumentApproval(doc.getApprover(), doc.getTitle(), doc.getCompany());
         }
         doc.setReviewDate(LocalDate.parse(dto.getReviewDate()));

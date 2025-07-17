@@ -16,4 +16,10 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     long countUnreadByEmail(@Param("email") String email);
 
     List<Notification> findByCompanyId(Long company_id);
+
+    List<Notification> findByCompany_IdAndReadFalse(Long companyId);
+
+    List<Notification> findByCompany_IdOrderBySentAtDesc(Long companyId);
+
+
 }
