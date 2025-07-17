@@ -36,4 +36,8 @@ public class Notification {
     @ManyToOne
     @JoinColumn(name = "risk_id")
     private Risk risk;
+
+    @ManyToOne
+    @JoinColumn(name="company_id")
+    private Company company;
 }

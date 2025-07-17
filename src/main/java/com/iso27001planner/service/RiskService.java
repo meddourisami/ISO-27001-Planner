@@ -70,7 +70,7 @@ public class RiskService {
         ));
 
         if (severity.equalsIgnoreCase("high")) {
-            notificationService.notifyHighRisk(getCurrentUserEmail(), risk.getTitle());
+            notificationService.notifyHighRisk(getCurrentUserEmail(), saved.getTitle(), saved.getCompany() );
         }
 
         return riskMapper.toDTO(saved);
@@ -128,7 +128,7 @@ public class RiskService {
             System.out.println("📊 Calculated Severity: " + severity);
             risk.setSeverity(severity);
             if (severity.equalsIgnoreCase("high")) {
-                notificationService.notifyHighRisk(getCurrentUserEmail(), risk.getTitle());
+                notificationService.notifyHighRisk(getCurrentUserEmail(), risk.getTitle(), risk.getCompany());
             }
 
             risk.setStatus(dto.getStatus());

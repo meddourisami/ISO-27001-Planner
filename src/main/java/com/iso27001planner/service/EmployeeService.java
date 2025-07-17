@@ -47,7 +47,7 @@ public class EmployeeService {
                  getCurrentUserEmail(),
                 "Employee",
                  saved.getId().toString(),
-                "New employee added : " + employee.getName()
+                "New employee added : " + saved.getName()
         ));
 
         return toDTO(saved);

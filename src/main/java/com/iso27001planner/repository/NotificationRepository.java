@@ -9,7 +9,11 @@ import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     List<Notification> findByTargetEmail(String email);
+
     List<Notification> findByTargetEmailAndRisk_Id(String email, String riskId);
+
     @Query("SELECT COUNT(n) FROM Notification n WHERE n.targetEmail = :email AND n.read = false")
     long countUnreadByEmail(@Param("email") String email);
+
+    List<Notification> findByCompanyId(Long company_id);
 }

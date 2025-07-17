@@ -49,7 +49,7 @@ public class TaskService {
 
         long daysUntilDue = ChronoUnit.DAYS.between(LocalDate.now(), saved.getDueDate());
         if (daysUntilDue <= 3 && !saved.getStatus().equals("done")) {
-            notificationService.notifyTaskDueSoon(saved.getAssignee(), saved.getTitle(), daysUntilDue);
+            notificationService.notifyTaskDueSoon(saved.getAssignee(), saved.getTitle(), daysUntilDue, saved.getCompany());
         }
 
         eventPublisher.publishEvent(new AuditEvent(
@@ -58,7 +58,7 @@ public class TaskService {
                 getCurrentUserEmail(),
                 "Task",
                  saved.getId().toString(),
-                "Task " + task.getTitle() +" added"
+                "Task " + saved.getTitle() +" added"
         ));
 
         return toDTO(saved);
@@ -113,7 +113,7 @@ public class TaskService {
         task.setDueDate(LocalDate.parse(dto.getDueDate()));
         long daysUntilDue = ChronoUnit.DAYS.between(LocalDate.now(), task.getDueDate());
         if (daysUntilDue <= 3 && !task.getStatus().equals("done")) {
-            notificationService.notifyTaskDueSoon(task.getAssignee(), task.getTitle(), daysUntilDue);
+            notificationService.notifyTaskDueSoon(task.getAssignee(), task.getTitle(), daysUntilDue, task.getCompany());
         }
         task.setCategory(dto.getCategory());
         task.setProgress(dto.getProgress());

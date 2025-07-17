@@ -65,7 +65,7 @@ public class TrainingService {
             Training saved = trainingRepository.save(training); // 🛠 Save first to generate ID
 
             // 🔔 Notification & Audit
-            notificationService.notifyTrainingAvailable(getCurrentUserEmail(), saved.getTitle());
+            notificationService.notifyTrainingAvailable(getCurrentUserEmail(), saved.getTitle(), saved.getCompany());
 
             eventPublisher.publishEvent(new AuditEvent(
                     this,

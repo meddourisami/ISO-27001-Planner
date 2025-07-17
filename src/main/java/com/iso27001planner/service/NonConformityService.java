@@ -75,7 +75,7 @@ public class NonConformityService {
                  getCurrentUserEmail(),
                 "NonConformity",
                  saved.getId().toString(),
-                "Added non-conformity: " + nc.getTitle()
+                "Added non-conformity: " + saved.getTitle()
         ));
 
         return toDTO(saved);
