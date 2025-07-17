@@ -22,6 +22,7 @@ public class DocumentMapper {
                 .approvalDate(doc.getApprovalDate() != null ? doc.getApprovalDate().toString() : null)
                 .reviewDate(doc.getReviewDate() != null ? doc.getReviewDate().toString() : null)
                 .content(doc.getContent()) // if needed
+                .relatedControls(doc.getRelatedControls())
                 .build();
     }
 

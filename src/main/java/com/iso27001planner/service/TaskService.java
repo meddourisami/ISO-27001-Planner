@@ -16,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,6 +28,7 @@ public class TaskService {
     private final RiskRepository riskRepository;
     private final CompanyRepository companyRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public TaskDTO createTask(TaskDTO dto) {
         Task task = Task.builder()
@@ -43,16 +45,23 @@ public class TaskService {
                 .risk(dto.getRiskId() != null ? riskRepository.findById(UUID.fromString(String.valueOf(dto.getRiskId()))).orElse(null) : null)
                 .build();
 
+        Task saved = taskRepository.save(task);
+
+        long daysUntilDue = ChronoUnit.DAYS.between(LocalDate.now(), saved.getDueDate());
+        if (daysUntilDue <= 3 && !saved.getStatus().equals("done")) {
+            notificationService.notifyTaskDueSoon(saved.getAssignee(), saved.getTitle(), daysUntilDue);
+        }
+
         eventPublisher.publishEvent(new AuditEvent(
                 this,
                 "TASK CREATED",
                 getCurrentUserEmail(),
                 "Task",
-                 task.getId().toString(),
+                 saved.getId().toString(),
                 "Task " + task.getTitle() +" added"
         ));
 
-        return toDTO(taskRepository.save(task));
+        return toDTO(saved);
     }
 
     public List<TaskDTO> listCompanyTasks(Long companyId) {
@@ -102,6 +111,10 @@ public class TaskService {
         task.setStatus(dto.getStatus());
         task.setPriority(dto.getPriority());
         task.setDueDate(LocalDate.parse(dto.getDueDate()));
+        long daysUntilDue = ChronoUnit.DAYS.between(LocalDate.now(), task.getDueDate());
+        if (daysUntilDue <= 3 && !task.getStatus().equals("done")) {
+            notificationService.notifyTaskDueSoon(task.getAssignee(), task.getTitle(), daysUntilDue);
+        }
         task.setCategory(dto.getCategory());
         task.setProgress(dto.getProgress());
         task.setRelatedControl(dto.getRelatedControl());

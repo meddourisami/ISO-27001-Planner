@@ -50,6 +50,7 @@ public class DocumentService {
     private final CompanyRepository companyRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final DocumentMapper mapper;
+    private final NotificationService notificationService;
 
     private final Path rootDir = Paths.get("uploads/documents");
 
@@ -193,6 +194,9 @@ public class DocumentService {
         doc.setOwner(dto.getOwner());
         doc.setApprover(dto.getApprover());
         doc.setStatus(newStatus);
+        if (newStatus == "Review"){
+            notificationService.notifyDocumentApproval(doc.getApprover(), doc.getTitle());
+        }
         doc.setReviewDate(LocalDate.parse(dto.getReviewDate()));
 
         // Calculate and apply version bump
@@ -302,6 +306,7 @@ public class DocumentService {
                 doc.getApprovalDate() != null ? doc.getApprovalDate().toString() : null,
                 doc.getReviewDate() != null ? doc.getReviewDate().toString() : null,
                 doc.getContent(),
+                doc.getRelatedControls(),
                 doc.getCompany().getId()
         );
     }

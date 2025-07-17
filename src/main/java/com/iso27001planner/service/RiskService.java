@@ -33,6 +33,7 @@ public class RiskService {
     private final RiskMapper riskMapper;
     private final ApplicationEventPublisher eventPublisher;
     private RiskScoringStrategy strategy;
+    private final NotificationService notificationService;
 
     public RiskDTO getRiskById(String id) {
         Risk risk = riskRepository.findById(UUID.fromString(id))
@@ -67,6 +68,10 @@ public class RiskService {
                  saved.getId(),
                 "New risk added: " + saved.getTitle()
         ));
+
+        if (severity.equalsIgnoreCase("high")) {
+            notificationService.notifyHighRisk(getCurrentUserEmail(), risk.getTitle());
+        }
 
         return riskMapper.toDTO(saved);
     }
@@ -119,8 +124,12 @@ public class RiskService {
             risk.setImpact(dto.getImpact());
 
             String severity = calculateSeverity(dto.getLikelihood(), dto.getImpact());
+
             System.out.println("📊 Calculated Severity: " + severity);
             risk.setSeverity(severity);
+            if (severity.equalsIgnoreCase("high")) {
+                notificationService.notifyHighRisk(getCurrentUserEmail(), risk.getTitle());
+            }
 
             risk.setStatus(dto.getStatus());
             risk.setTreatment(dto.getTreatment());

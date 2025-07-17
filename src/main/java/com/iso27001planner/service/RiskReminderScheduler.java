@@ -24,7 +24,7 @@ public class RiskReminderScheduler {
     private final EmailSenderService emailSenderService;
     private final NotificationRepository notificationRepository;
 
-    @Scheduled(cron = "0 0 7 * * ?") // Run daily at 7 AM
+    //@Scheduled(cron = "0 0 7 * * ?") // Run daily at 7 AM
     public void sendRemindersForTomorrow() {
         LocalDate tomorrow = LocalDate.now().plusDays(1);
         LocalDateTime now = LocalDateTime.now();
@@ -66,7 +66,7 @@ public class RiskReminderScheduler {
         }
     }
 
-    @Scheduled(cron = "0 0 8 ? * MON") // Every Monday at 8 AM
+    //@Scheduled(cron = "0 0 8 ? * MON") // Every Monday at 8 AM
     public void sendWeeklyDigest() {
         LocalDate today = LocalDate.now();
         LocalDate endOfWeek = today.plusDays(6);
@@ -115,7 +115,7 @@ public class RiskReminderScheduler {
         }
     }
 
-    @Scheduled(cron = "0 0 2 * * ?") // Every day at 2 AM
+    //@Scheduled(cron = "0 0 2 * * ?") // Every day at 2 AM
     public void purgeOldNotifications() {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(90);
         List<Notification> old = notificationRepository.findAll().stream()

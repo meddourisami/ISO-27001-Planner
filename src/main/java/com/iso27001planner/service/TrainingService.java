@@ -17,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -29,35 +30,59 @@ public class TrainingService {
     private final CompanyRepository companyRepository;
     private final EmployeeRepository employeeRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public TrainingDTO createTraining(TrainingDTO dto, Long companyId) {
-        Company company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new BusinessException("Company not found", HttpStatus.NOT_FOUND));
+        try {
+            Company company = companyRepository.findById(companyId)
+                    .orElseThrow(() -> new BusinessException("Company not found", HttpStatus.NOT_FOUND));
 
-        Training training = Training.builder()
-                .title(dto.getTitle())
-                .description(dto.getDescription())
-                .type(dto.getType())
-                .status(dto.getStatus())
-                .startDate(LocalDate.parse(dto.getStartDate()))
-                .endDate(LocalDate.parse(dto.getEndDate()))
-                .duration(dto.getDuration())
-                .instructor(dto.getInstructor())
-                .materials(dto.getMaterials())
-                .requiredFor(dto.getRequiredFor())
-                .company(company)
-                .build();
+            LocalDate start = null;
+            LocalDate end = null;
 
-        eventPublisher.publishEvent(new AuditEvent(
-                this,
-                "NEW TRAINING ADDED",
-                getCurrentUserEmail(),
-                "Training",
-                 training.getId().toString(),
-                "New training added" + training.getTitle()
-        ));
+            if (dto.getStartDate() != null && !dto.getStartDate().isBlank()) {
+                start = LocalDate.parse(dto.getStartDate());
+            }
 
-        return toDTO(trainingRepository.save(training));
+            if (dto.getEndDate() != null && !dto.getEndDate().isBlank()) {
+                end = LocalDate.parse(dto.getEndDate());
+            }
+
+            Training training = Training.builder()
+                    .title(dto.getTitle())
+                    .description(dto.getDescription())
+                    .type(dto.getType())
+                    .status(dto.getStatus())
+                    .startDate(start)
+                    .endDate(end)
+                    .duration(dto.getDuration())
+                    .instructor(dto.getInstructor())
+                    .materials(dto.getMaterials())
+                    .requiredFor(dto.getRequiredFor())
+                    .company(company)
+                    .build();
+
+            Training saved = trainingRepository.save(training); // 🛠 Save first to generate ID
+
+            // 🔔 Notification & Audit
+            notificationService.notifyTrainingAvailable(getCurrentUserEmail(), saved.getTitle());
+
+            eventPublisher.publishEvent(new AuditEvent(
+                    this,
+                    "NEW TRAINING ADDED",
+                    getCurrentUserEmail(),
+                    "Training",
+                    saved.getId().toString(), // ✅ Now ID is non-null
+                    "New training added: " + saved.getTitle()
+            ));
+
+            return toDTO(saved);
+        } catch (DateTimeParseException ex) {
+            throw new BusinessException("⛔ Invalid date format. Expected format: yyyy-MM-dd", HttpStatus.BAD_REQUEST);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw new BusinessException("⚠️ Failed to create training: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     public List<TrainingDTO> listTrainings(Long companyId) {

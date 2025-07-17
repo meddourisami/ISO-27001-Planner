@@ -39,16 +39,18 @@ public class EmployeeService {
                 .company(Company.builder().id(companyId).build())
                 .build();
 
+        Employee saved = employeeRepository.save(employee);
+
         eventPublisher.publishEvent(new AuditEvent(
                 this,
                 "New Employee added",
                  getCurrentUserEmail(),
                 "Employee",
-                 employee.getId().toString(),
+                 saved.getId().toString(),
                 "New employee added : " + employee.getName()
         ));
 
-        return toDTO(employeeRepository.save(employee));
+        return toDTO(saved);
     }
 
     public void markTrainingCompleted(UUID employeeId, UUID trainingId) {

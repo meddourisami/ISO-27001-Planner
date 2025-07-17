@@ -21,6 +21,7 @@ public class DocumentDTO {
     private String approvalDate;
     private String reviewDate;
     private String content;
+    private String relatedControls;
 
     private Long companyId;
 
