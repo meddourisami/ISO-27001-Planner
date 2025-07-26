@@ -15,4 +15,6 @@ public interface DocumentVersionRepository extends JpaRepository<DocumentVersion
     List<DocumentVersion> searchByContent(@Param("query") String query);
 
     Optional<DocumentVersion> findTopByDocumentOrderByUploadedAtDesc(Document doc);
+
+    List<DocumentVersion> findByDocument_IdIn(List<Long> documentIds);
 }
